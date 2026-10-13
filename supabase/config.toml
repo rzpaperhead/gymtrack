@@ -1,0 +1,12 @@
+# Minimal Supabase CLI config. Run `npx supabase link --project-ref <ref>` then
+# `npx supabase db push` to apply supabase/migrations to your project.
+project_id = "gymtrack"
+
+[auth]
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback", "https://*.vercel.app/auth/callback"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+otp_length = 6
