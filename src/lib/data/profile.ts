@@ -20,6 +20,7 @@ export function defaultProfile(id: string, locale: Profile["locale"] = "id"): Pr
     carbs_target: null,
     fat_target: null,
     onboarded_at: null,
+    avatar_url: null,
     created_at: now,
     updated_at: now,
   };

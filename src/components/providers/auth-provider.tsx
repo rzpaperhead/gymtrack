@@ -7,6 +7,7 @@ import { useSetLocale } from "@/components/providers/i18n-provider";
 import { identify } from "@/lib/analytics";
 import { defaultProfile } from "@/lib/data/profile";
 import { uploadPendingPhotos } from "@/lib/data/photos";
+import { fetchIsAdmin } from "@/lib/data/premium";
 import { clearLocalData, db, getMeta, setMeta } from "@/lib/db/local";
 import { DEMO_USER_ID, setSessionUser } from "@/lib/db/session";
 import { startSync, stopSync, syncNow } from "@/lib/db/sync-manager";
@@ -70,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await Promise.race([syncNow(), new Promise((r) => setTimeout(r, 8000))]);
       }
       void uploadPendingPhotos();
+      if (navigator.onLine) void fetchIsAdmin().catch(() => {});
     } else if (!(await db.profiles.get(id))) {
       await db.profiles.put(defaultProfile(id));
     }

@@ -2,12 +2,13 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Bell, ChevronRight, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
+import { Bell, Camera, ChevronRight, ShieldCheck, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Avatar } from "@/components/avatar";
 import { Card, ConfirmDialog, Field, NativeSelect, PageHeader, Section, Segmented } from "@/components/common";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { useSetLocale } from "@/components/providers/i18n-provider";
@@ -15,11 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { LOCALE_LABELS } from "@/i18n/messages";
+import { removeAvatar, setAvatar } from "@/lib/data/avatar";
 import { exportWorkoutsCsv } from "@/lib/data/export";
 import { updateProfile } from "@/lib/data/profile";
 import { clearLocalData, db } from "@/lib/db/local";
 import { syncNow, useSyncStatus } from "@/lib/db/sync-manager";
-import { formatClock, useEntitlements } from "@/lib/hooks";
+import { formatClock, useEntitlements, useIsAdmin } from "@/lib/hooks";
 import { authHeader } from "@/lib/supabase/client";
 import type { Goal, Locale, ThemePref, Unit } from "@/lib/types";
 
@@ -33,6 +35,8 @@ export default function ProfilePage() {
   const { email, mode, signOut, userId } = useAuth();
   const { setLocale } = useSetLocale();
   const ent = useEntitlements();
+  const admin = useIsAdmin();
+  const avatarRef = useRef<HTMLInputElement>(null);
   const sync = useSyncStatus();
   const sub = useLiveQuery(async () => (userId ? db.subscriptions.get(userId) : undefined), [userId]);
   const [name, setName] = useState("");
@@ -74,20 +78,57 @@ export default function ProfilePage() {
       <PageHeader title={t("profile.title")} />
 
       <Card className="flex items-center gap-3">
-        <div className="flex size-14 items-center justify-center rounded-full bg-primary text-2xl font-extrabold text-primary-foreground" aria-hidden>
-          {(profile.display_name || email || "G").slice(0, 1).toUpperCase()}
+        <div className="relative">
+          <Avatar url={profile.avatar_url} name={profile.display_name || email || "G"} className="size-16" />
+          <input
+            ref={avatarRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            aria-label={t("profile.changePhoto")}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = "";
+              if (!file) return;
+              try {
+                await setAvatar(file);
+                toast.success(t("profile.photoSaved"));
+              } catch {
+                toast.error(t("common.error"));
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => avatarRef.current?.click()}
+            aria-label={t("profile.changePhoto")}
+            className="absolute -right-1 -bottom-1 flex size-8 items-center justify-center rounded-full border-2 border-card bg-secondary"
+          >
+            <Camera className="size-4" aria-hidden />
+          </button>
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{profile.display_name || "—"}</p>
           <p className="truncate text-sm text-muted-foreground">{email ?? t("common.demoMode")}</p>
+          {profile.avatar_url && (
+            <button type="button" className="text-xs text-muted-foreground underline underline-offset-2" onClick={() => removeAvatar()}>
+              {t("profile.removePhoto")}
+            </button>
+          )}
         </div>
         <Link href="/premium" className="flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm font-semibold">
           <Crown className="size-4 text-primary" aria-hidden />
-          {ent.tier === "premium" ? t("common.premium") : t("common.free")}
+          {admin ? "Admin" : ent.tier === "premium" ? t("common.premium") : t("common.free")}
         </Link>
       </Card>
 
-      {ent.tier === "free" && (
+      {admin && (
+        <Link href="/admin" className="flex min-h-14 items-center gap-3 rounded-2xl border border-primary bg-card px-4 font-bold">
+          <ShieldCheck className="size-5 text-primary" aria-hidden /> <span className="flex-1">{t("admin.title")}</span> <ChevronRight aria-hidden />
+        </Link>
+      )}
+
+      {ent.tier === "free" && !admin && (
         <Link href="/premium" className="flex min-h-14 items-center gap-3 rounded-2xl bg-primary px-4 font-bold text-primary-foreground">
           <Crown aria-hidden /> <span className="flex-1">{t("profile.upgrade")}</span> <ChevronRight aria-hidden />
         </Link>

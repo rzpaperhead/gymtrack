@@ -25,6 +25,7 @@ import { alive, db } from "@/lib/db/local";
 import { formatClock, useActiveWorkout, useNow } from "@/lib/hooks";
 import { deleteWorkout, finishWorkout, hasValues, updateWorkout } from "@/lib/workout/actions";
 import { stopRest } from "@/lib/workout/rest-timer";
+import { useWakeLock } from "@/lib/workout/wake-lock";
 
 export default function ActiveWorkoutPage() {
   const t = useTranslations();
@@ -36,6 +37,7 @@ export default function ActiveWorkoutPage() {
   const [name, setName] = useState<string | null>(null);
   const [notes, setNotes] = useState<string | null>(null);
   const [finishing, setFinishing] = useState<string | null>(null);
+  const screenOn = useWakeLock(!!workout);
 
   const openSets = useLiveQuery(
     async () => (workout ? (await db.sets.where("workout_id").equals(workout.id).toArray()).filter((s) => alive(s) && !s.completed_at) : []),
@@ -97,6 +99,7 @@ export default function ActiveWorkoutPage() {
         </div>
       </header>
 
+      {screenOn && <p className="text-center text-xs text-muted-foreground">{t("active.screenOn")}</p>}
       <WorkoutEditor workoutId={workout.id} mode="active" />
 
       <div className="grid gap-1.5">

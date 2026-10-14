@@ -7,23 +7,20 @@ import { useState } from "react";
 import { PageHeader, PaywallCard } from "@/components/common";
 import { ExerciseFormDialog } from "@/components/exercise-form";
 import { Button } from "@/components/ui/button";
-import { ExerciseFilters, useFilteredExercises } from "@/components/workout/exercise-picker";
+import { ExerciseFilters, GroupedExerciseList, useExerciseFilters, useFilteredExercises } from "@/components/workout/exercise-picker";
 import { exerciseName, useExerciseCatalog } from "@/lib/catalog";
 import { canCreate } from "@/lib/entitlements";
 import { useEntitlements } from "@/lib/hooks";
-import type { Equipment, Muscle } from "@/lib/types";
 
 export default function ExercisesPage() {
   const t = useTranslations();
   const locale = useLocale();
   const ent = useEntitlements();
   const catalog = useExerciseCatalog();
-  const [query, setQuery] = useState("");
-  const [muscle, setMuscle] = useState<Muscle | "">("");
-  const [equipment, setEquipment] = useState<Equipment | "">("");
+  const filters = useExerciseFilters();
   const [creating, setCreating] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
-  const list = useFilteredExercises(query, muscle, equipment);
+  const list = useFilteredExercises(filters.query, filters.equipment);
 
   return (
     <div className="space-y-4">
@@ -41,13 +38,15 @@ export default function ExercisesPage() {
         }
       />
       {showPaywall && <PaywallCard reason={t("exercises.limitReached", { max: ent.maxCustomExercises })} />}
-      <ExerciseFilters {...{ query, setQuery, muscle, setMuscle, equipment, setEquipment }} />
+      <ExerciseFilters {...filters} />
       <p className="text-sm text-muted-foreground" aria-live="polite">
         {t("common.exercisesCount", { count: list.length })}
       </p>
-      <ul className="divide-y rounded-2xl border bg-card">
-        {list.map((e) => (
-          <li key={e.id}>
+      <div className="rounded-2xl border bg-card [&_h3]:top-14 [&_h3]:bg-card">
+        <GroupedExerciseList
+          list={list}
+          group={filters.group}
+          renderItem={(e) => (
             <Link href={`/exercises/view?id=${e.id}`} className="flex min-h-16 items-center gap-3 px-4 py-2 outline-none focus-visible:bg-muted">
               <span className="min-w-0 flex-1">
                 <span className="block truncate font-semibold">{exerciseName(e, locale)}</span>
@@ -58,9 +57,9 @@ export default function ExercisesPage() {
               </span>
               <ChevronRight className="size-5 text-muted-foreground" aria-hidden />
             </Link>
-          </li>
-        ))}
-      </ul>
+          )}
+        />
+      </div>
       <ExerciseFormDialog open={creating} onOpenChange={setCreating} />
     </div>
   );

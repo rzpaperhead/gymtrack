@@ -19,7 +19,7 @@ test("new user signs up, onboards and logs a first workout in under 3 minutes", 
   await expect(page.getByRole("heading", { name: /Halo, Tester/i })).toBeVisible();
 
   // Empty session + one exercise
-  await page.getByRole("button", { name: /Mulai latihan kosong/i }).click();
+  await page.getByRole("button", { name: /Latihan bebas sekarang/i }).click();
   await expect(page).toHaveURL(/\/workout\/active/);
   await page.getByRole("button", { name: "Tambah exercise" }).first().click();
   await page.getByRole("searchbox", { name: "Cari" }).fill("bench press (barbel)");
@@ -53,7 +53,7 @@ test("repeating a session pre-fills last values so a set is one tap", async ({ p
   await expect(page).toHaveURL(/\/home/);
 
   const logOnce = async (weight?: string) => {
-    await page.getByRole("button", { name: /Mulai latihan kosong/i }).click();
+    await page.getByRole("button", { name: /Latihan bebas sekarang/i }).click();
     await page.getByRole("button", { name: "Tambah exercise" }).first().click();
     await page.getByRole("searchbox", { name: "Cari" }).fill("squat (barbel)");
     await page.getByRole("button", { name: /^Squat \(Barbel\)/ }).click();

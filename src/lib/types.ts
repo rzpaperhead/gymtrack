@@ -81,6 +81,8 @@ export interface Profile {
   carbs_target: number | null;
   fat_target: number | null;
   onboarded_at: string | null;
+  /** Public URL (Storage) or a small data URL in demo mode. */
+  avatar_url?: string | null;
   created_at: string;
   updated_at: string;
 }

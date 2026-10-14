@@ -11,6 +11,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 const MIGRATIONS = join(__dirname, "..", "..", "supabase", "migrations");
 const A = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const B = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const ADMIN = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+const EMAIL: Record<string, string> = { [A]: "a@test.dev", [B]: "b@test.dev", [ADMIN]: "rzpaperhead@gmail.com" };
 const BENCH = "e0000000-0000-4000-8000-000000000001";
 
 const SUPABASE_STUB = `
@@ -21,6 +23,9 @@ const SUPABASE_STUB = `
   create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb default '{}'::jsonb);
   create function auth.uid() returns uuid language sql stable as $$
     select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+  $$;
+  create function auth.jwt() returns jsonb language sql stable as $$
+    select coalesce(nullif(current_setting('request.jwt.claims', true), '')::jsonb, '{}'::jsonb)
   $$;
   grant usage on schema auth to authenticated, anon;
   create schema storage;
@@ -39,7 +44,10 @@ const SUPABASE_STUB = `
 let db: PGlite;
 
 async function as<T>(uid: string, fn: () => Promise<T>): Promise<T> {
-  await db.exec(`set role authenticated; select set_config('request.jwt.claim.sub', '${uid}', false);`);
+  await db.exec(
+    `set role authenticated; select set_config('request.jwt.claim.sub', '${uid}', false);
+     select set_config('request.jwt.claims', '{"email":"${EMAIL[uid] ?? ""}"}', false);`,
+  );
   try {
     return await fn();
   } finally {
@@ -57,7 +65,9 @@ beforeAll(async () => {
   for (const f of readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort()) {
     await db.exec(readFileSync(join(MIGRATIONS, f), "utf8"));
   }
-  await db.exec(`insert into auth.users (id, email) values ('${A}', 'a@test.dev'), ('${B}', 'b@test.dev');`);
+  await db.exec(
+    `insert into auth.users (id, email) values ('${A}', 'a@test.dev'), ('${B}', 'b@test.dev'), ('${ADMIN}', 'rzpaperhead@gmail.com');`,
+  );
   // User A logs a workout.
   await as(A, () =>
     db.exec(`
@@ -80,7 +90,7 @@ afterAll(async () => {
 describe("schema bootstrap", () => {
   it("creates a profile and free subscription for new users", async () => {
     const p = await rows(`select id, locale, unit from public.profiles order by id`);
-    expect(p).toHaveLength(2);
+    expect(p).toHaveLength(3);
     expect(p[0]).toMatchObject({ locale: "id", unit: "kg" });
     const s = await rows(`select tier from public.subscriptions where user_id = $1`, [A]);
     expect(s[0].tier).toBe("free");
@@ -201,5 +211,58 @@ describe("freemium backstop", () => {
     await as(A, () =>
       db.exec(`insert into public.programs (user_id, name, builtin_key, is_active) values ('${A}', 'PPL', 'ppl_6', true)`),
     );
+  });
+});
+
+describe("admin, promo codes and manual payments", () => {
+  const rpc = async (uid: string, sql: string) => (await as(uid, () => rows(sql)))[0];
+
+  it("only the admin email is admin, and admin counts as premium", async () => {
+    expect((await rpc(ADMIN, "select public.is_admin() as v")).v).toBe(true);
+    expect((await rpc(A, "select public.is_admin() as v")).v).toBe(false);
+    const [{ v }] = await rows(`select public.is_premium('${ADMIN}') as v`);
+    expect(v).toBe(true);
+  });
+
+  it("non-admins cannot create promo codes or grant premium directly", async () => {
+    await expect(as(A, () => db.exec(`insert into public.promo_codes (code, kind) values ('HACK-1234', 'permanent')`))).rejects.toThrow(
+      /row-level security/,
+    );
+    await expect(as(A, () => db.exec(`select public.grant_premium('${A}', null, 'x', 'y')`))).rejects.toThrow(/permission denied/);
+  });
+
+  it("a temporary code grants premium for N days, once per user, up to max uses", async () => {
+    await as(ADMIN, () => db.exec(`insert into public.promo_codes (code, kind, duration_days, max_uses) values ('GT-TEMP-0001', 'temporary', 7, 1)`));
+    expect((await rpc(A, "select public.redeem_promo_code('gt-temp-0001') as r")).r).toBe("ok");
+    expect((await rpc(A, "select public.redeem_promo_code('GT-TEMP-0001') as r")).r).toBe("already");
+    expect((await rpc(B, "select public.redeem_promo_code('GT-TEMP-0001') as r")).r).toBe("used_up");
+    expect((await rpc(B, "select public.redeem_promo_code('NOPE-0000') as r")).r).toBe("invalid");
+    const [s] = await rows(`select tier, current_period_end > now() + interval '6 days' as ok from public.subscriptions where user_id = $1`, [A]);
+    expect(s).toMatchObject({ tier: "premium", ok: true });
+  });
+
+  it("a permanent code grants premium with no end date", async () => {
+    await as(ADMIN, () => db.exec(`insert into public.promo_codes (code, kind, max_uses) values ('GT-LIFE-0001', 'permanent', 5)`));
+    expect((await rpc(B, "select public.redeem_promo_code('GT-LIFE-0001') as r")).r).toBe("ok");
+    const [s] = await rows(`select tier, current_period_end from public.subscriptions where user_id = $1`, [B]);
+    expect(s).toMatchObject({ tier: "premium", current_period_end: null });
+  });
+
+  it("users submit payment proofs; only the admin can review them", async () => {
+    await as(A, () => db.exec(`insert into public.payment_confirmations (amount_idr, proof_path) values (15000, '${A}/proof.jpg')`));
+    // Can't file a proof under someone else's folder, nor pre-approve it.
+    await expect(
+      as(A, () => db.exec(`insert into public.payment_confirmations (amount_idr, proof_path) values (1, '${B}/x.jpg')`)),
+    ).rejects.toThrow();
+    await expect(
+      as(A, () => db.exec(`insert into public.payment_confirmations (amount_idr, proof_path, status) values (1, '${A}/y.jpg', 'approved')`)),
+    ).rejects.toThrow(/row-level security/);
+    expect(await as(B, () => rows(`select id from public.payment_confirmations`))).toHaveLength(0);
+    const [pc] = await as(ADMIN, () => rows(`select id, user_email from public.payment_confirmations`));
+    expect(pc.user_email).toBe("a@test.dev");
+    await expect(as(A, () => db.exec(`select public.review_payment('${pc.id}', true, 30)`))).rejects.toThrow(/admin only/);
+    await as(ADMIN, () => db.exec(`select public.review_payment('${pc.id}', true, 30)`));
+    const [st] = await rows(`select status from public.payment_confirmations where id = $1`, [pc.id]);
+    expect(st.status).toBe("approved");
   });
 });

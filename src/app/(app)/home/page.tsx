@@ -3,6 +3,8 @@
 import { useLiveQuery } from "dexie-react-hooks";
 import { CalendarDays, Flame, Play, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
+import Link from "next/link";
+import { Avatar } from "@/components/avatar";
 import { Card, EmptyState, LinkButton, Section } from "@/components/common";
 import { useProfile } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -36,13 +38,18 @@ export default function HomePage() {
 
   return (
     <div className="space-y-6 pt-4">
-      <header className="pt-safe">
+      <header className="pt-safe flex items-center gap-3">
+        <div className="min-w-0 flex-1">
         <p className="text-sm text-muted-foreground">
           {new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long" }).format(new Date())}
         </p>
         <h1 className="text-4xl font-extrabold uppercase">
           {profile?.display_name ? t("home.greeting", { name: profile.display_name }) : t("home.greetingNoName")}
         </h1>
+        </div>
+        <Link href="/profile" aria-label={t("nav.profile")}>
+          <Avatar url={profile?.avatar_url} name={profile?.display_name ?? ""} className="size-12 text-xl" />
+        </Link>
       </header>
 
       {active ? (

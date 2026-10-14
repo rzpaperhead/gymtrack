@@ -79,3 +79,23 @@ export const PRICING = {
 } as const;
 
 export type Plan = "monthly" | "yearly";
+
+/**
+ * Manual bank-transfer pricing (current payment method). Prices are set in USD
+ * and shown in IDR at the live exchange rate (see /api/fx).
+ */
+export const MANUAL_PRICING = {
+  usdOriginal: Number(process.env.NEXT_PUBLIC_PRICE_USD_ORIGINAL ?? 5),
+  usd: Number(process.env.NEXT_PUBLIC_PRICE_USD ?? 0.9),
+  /** How long an approved transfer unlocks Premium. */
+  premiumDays: Number(process.env.NEXT_PUBLIC_PREMIUM_DAYS ?? 30),
+  bankName: "Bank Jago",
+  accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "108882753039",
+  accountHolder: process.env.NEXT_PUBLIC_BANK_ACCOUNT_HOLDER ?? "",
+  fallbackUsdIdr: 16500,
+} as const;
+
+/** IDR amount rounded up to the nearest Rp100 so transfers are easy to type. */
+export function usdToIdr(usd: number, rate: number): number {
+  return Math.ceil((usd * rate) / 100) * 100;
+}

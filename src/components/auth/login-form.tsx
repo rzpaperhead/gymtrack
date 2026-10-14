@@ -1,21 +1,23 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Dumbbell, Mail } from "lucide-react";
+import { Dumbbell, MailCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { Field, Segmented } from "@/components/common";
+import { Field } from "@/components/common";
 import { LanguageSwitch } from "@/components/language-switch";
 import { startDemo, useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabase } from "@/lib/supabase/client";
 
-const emailSchema = z.object({ email: z.email() });
 const passwordSchema = z.object({ email: z.email(), password: z.string().min(8) });
+
+/** Google sign-in stays hidden until the provider is enabled in Supabase. */
+const GOOGLE_ENABLED = process.env.NEXT_PUBLIC_AUTH_GOOGLE === "1";
 
 function redirectTo() {
   return `${window.location.origin}/auth/callback`;
@@ -25,7 +27,6 @@ export function LoginForm() {
   const t = useTranslations("auth");
   const { status, mode } = useAuth();
   const router = useRouter();
-  const [method, setMethod] = useState<"password" | "email">("password");
 
   useEffect(() => {
     if (status === "signed_in") router.replace("/home");
@@ -54,22 +55,17 @@ export function LoginForm() {
         </div>
       ) : (
         <>
-          <GoogleButton />
-          <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground">
-            <span className="h-px flex-1 bg-border" />
-            {t("or")}
-            <span className="h-px flex-1 bg-border" />
-          </div>
-          <Segmented
-            label={t("title")}
-            value={method}
-            onChange={setMethod}
-            options={[
-              { value: "password", label: t("withPassword") },
-              { value: "email", label: t("withEmail") },
-            ]}
-          />
-          {method === "password" ? <PasswordForm /> : <EmailCodeForm />}
+          {GOOGLE_ENABLED && (
+            <>
+              <GoogleButton />
+              <div className="flex items-center gap-3 text-xs uppercase text-muted-foreground">
+                <span className="h-px flex-1 bg-border" />
+                {t("or")}
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            </>
+          )}
+          <PasswordForm />
         </>
       )}
     </main>
@@ -103,6 +99,7 @@ function PasswordForm() {
   const t = useTranslations("auth");
   const [signUp, setSignUp] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [sentTo, setSentTo] = useState<string | null>(null);
   const form = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { email: "", password: "" } });
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
@@ -111,12 +108,35 @@ function PasswordForm() {
     if (signUp) {
       const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: redirectTo() } });
       if (error) return setMessage(error.message);
-      if (!data.session) setMessage(t("checkEmailConfirm"));
+      if (!data.session) {
+        setSentTo(email);
+        return;
+      }
     } else {
       const { error } = await sb.auth.signInWithPassword({ email, password });
-      if (error) setMessage(t("invalidCredentials"));
+      if (error) setMessage(error.code === "email_not_confirmed" ? t("notConfirmed") : t("invalidCredentials"));
     }
   });
+
+  if (sentTo) {
+    return (
+      <div role="status" className="space-y-4 rounded-2xl border bg-card p-5 text-center">
+        <MailCheck className="mx-auto size-10 text-primary" aria-hidden />
+        <p className="text-lg font-bold">{t("confirmSentTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("confirmSentBody", { email: sentTo })}</p>
+        <button
+          type="button"
+          className="min-h-11 font-semibold text-primary"
+          onClick={() => {
+            setSentTo(null);
+            setSignUp(false);
+          }}
+        >
+          {t("backToSignIn")}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -146,79 +166,6 @@ function PasswordForm() {
           {signUp ? t("signIn") : t("signUp")}
         </button>
       </p>
-    </form>
-  );
-}
-
-/**
- * Magic link + 6-digit code. The code matters for installed PWAs: on iOS a
- * link opens Safari, not the home-screen app, so typing the code is the way in.
- */
-function EmailCodeForm() {
-  const t = useTranslations("auth");
-  const [sentTo, setSentTo] = useState<string | null>(null);
-  const [code, setCode] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const form = useForm<z.infer<typeof emailSchema>>({ resolver: zodResolver(emailSchema), defaultValues: { email: "" } });
-
-  const send = form.handleSubmit(async ({ email }) => {
-    setMessage(null);
-    const { error } = await (await getSupabase()).auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo() } });
-    if (error) return setMessage(error.message);
-    setSentTo(email);
-  });
-
-  const verify = async () => {
-    if (!sentTo) return;
-    setBusy(true);
-    const { error } = await (await getSupabase()).auth.verifyOtp({ email: sentTo, token: code.trim(), type: "email" });
-    setBusy(false);
-    if (error) setMessage(t("callbackError"));
-  };
-
-  if (sentTo) {
-    return (
-      <div className="space-y-4">
-        <p role="status" className="rounded-xl border bg-card p-4 text-sm">
-          <Mail className="mb-1 inline size-4 text-primary" aria-hidden /> {t("linkSent", { email: sentTo })}
-        </p>
-        <Field label={t("code")} htmlFor="otp">
-          <Input
-            id="otp"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            maxLength={10}
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-            className="num text-center text-2xl tracking-[0.4em]"
-          />
-        </Field>
-        {message && (
-          <p role="alert" className="text-sm text-destructive">
-            {message}
-          </p>
-        )}
-        <Button size="xl" className="w-full" disabled={code.length < 6 || busy} onClick={verify}>
-          {t("verify")}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={send} className="space-y-4" noValidate>
-      <Field label={t("email")} htmlFor="email-link">
-        <Input id="email-link" type="email" autoComplete="email" inputMode="email" {...form.register("email")} aria-invalid={!!form.formState.errors.email} />
-      </Field>
-      {message && (
-        <p role="alert" className="text-sm text-destructive">
-          {message}
-        </p>
-      )}
-      <Button type="submit" size="xl" className="w-full" disabled={form.formState.isSubmitting}>
-        {t("sendLink")}
-      </Button>
     </form>
   );
 }

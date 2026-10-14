@@ -288,7 +288,7 @@ function ExerciseOptions({
   const close = () => onOpenChange(false);
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="rounded-t-3xl p-4" closeLabel={t("common.close")}>
+      <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-3xl p-4" closeLabel={t("common.close")}>
         <SheetHeader className="p-0">
           <SheetTitle className="pr-10 text-lg font-bold">{name}</SheetTitle>
         </SheetHeader>
@@ -350,7 +350,7 @@ function SetOptions({ set, onClose }: { set: WorkoutSet | null; onClose: () => v
   const rpes = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
   return (
     <Sheet open={!!set} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="bottom" className="rounded-t-3xl p-4" closeLabel={t("common.close")}>
+      <SheetContent side="bottom" className="max-h-[90dvh] overflow-y-auto rounded-t-3xl p-4" closeLabel={t("common.close")}>
         <SheetHeader className="p-0">
           <SheetTitle className="text-lg font-bold">{t("active.setType")}</SheetTitle>
         </SheetHeader>

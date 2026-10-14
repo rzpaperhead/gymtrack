@@ -11,10 +11,17 @@ export function useUnit(): Unit {
   return useProfile()?.unit ?? "kg";
 }
 
+/** Cached result of the server's is_admin() check (refreshed on sign-in). */
+export function useIsAdmin(): boolean {
+  const { userId } = useAuth();
+  return useLiveQuery(async () => (userId ? (await db.meta.get("isAdmin"))?.value === true : false), [userId]) ?? false;
+}
+
 export function useEntitlements(): Entitlements {
   const { userId } = useAuth();
+  const admin = useIsAdmin();
   const sub = useLiveQuery(async () => (userId ? db.subscriptions.get(userId) : undefined), [userId]);
-  return entitlementsFor(tierOf(sub));
+  return entitlementsFor(admin ? "premium" : tierOf(sub));
 }
 
 /** Re-renders every `ms` (for timers). */
