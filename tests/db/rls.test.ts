@@ -390,3 +390,59 @@ describe("social v2: notifications, kudos, leaderboard, challenges, blocking, gr
     expect((await one(A, `select public.send_friend_request('${await code(B)}') as r`)).r).toBe("sent");
   });
 });
+
+describe("activity feed and chat", () => {
+  const one = async (uid: string, sql: string) => (await as(uid, () => rows(sql)))[0];
+  const befriend = async (x: string, y: string) => {
+    const code = (await rows(`select friend_code from public.profiles where id = $1`, [y]))[0].friend_code;
+    await one(x, `select public.send_friend_request('${code}') as r`);
+    const f = await one(y, `select id from public.list_friends() where friend_id = '${x}'`);
+    if (f) await as(y, () => db.exec(`select public.respond_friend_request('${f.id}', true)`));
+  };
+
+  it("feed shows friends' workouts only", async () => {
+    await befriend(A, B); // re-friend (previous suite unfriended/blocked them)
+    const feedB = await as(B, () => rows(`select user_id from public.friends_feed(30)`));
+    expect(feedB.map((r) => r.user_id)).toContain(A);
+    expect(await as(ADMIN, () => rows(`select * from public.friends_feed(30)`))).toHaveLength(0);
+  });
+
+  it("direct chat between friends; outsiders can't read or post", async () => {
+    const { cid } = await one(A, `select public.get_or_create_direct('${B}') as cid`);
+    const again = await one(B, `select public.get_or_create_direct('${A}') as cid`);
+    expect(again.cid).toBe(cid);
+    await as(A, () => db.exec(`insert into public.messages (conversation_id, body) values ('${cid}', 'Halo!')`));
+    const inbox = await one(B, `select title, unread, last_body from public.list_conversations()`);
+    expect(inbox).toMatchObject({ unread: 1, last_body: "Halo!" });
+    await as(B, () => db.exec(`select public.mark_conversation_read('${cid}')`));
+    expect((await one(B, `select unread from public.list_conversations()`)).unread).toBe(0);
+    expect(await as(ADMIN, () => rows(`select * from public.messages`))).toHaveLength(0);
+    await expect(as(ADMIN, () => db.exec(`insert into public.messages (conversation_id, body) values ('${cid}', 'spam')`))).rejects.toThrow(
+      /row-level security/,
+    );
+    await expect(as(ADMIN, () => db.exec(`select public.get_or_create_direct('${A}')`))).rejects.toThrow(/not friends/);
+    // Push queued for the recipient.
+    const [n] = await rows(`select count(*)::int as n from public.notifications_outbox where user_id = $1 and kind = 'message'`, [B]);
+    expect(n.n).toBe(1);
+  });
+
+  it("blocking stops direct messages", async () => {
+    const { cid } = await one(A, `select public.get_or_create_direct('${B}') as cid`);
+    await as(B, () => db.exec(`select public.block_user('${A}')`));
+    await expect(as(A, () => db.exec(`insert into public.messages (conversation_id, body) values ('${cid}', 'hey')`))).rejects.toThrow(
+      /row-level security/,
+    );
+    await as(B, () => db.exec(`delete from public.blocks where blocked = '${A}'`));
+  });
+
+  it("group chat: only the creator's friends get added; members can leave", async () => {
+    await befriend(A, B);
+    const { cid } = await one(A, `select public.create_group_chat('Gym Squad', array['${B}', '${ADMIN}']::uuid[]) as cid`);
+    const members = await as(A, () => rows(`select user_id from public.conversation_members_info('${cid}')`));
+    expect(members.map((m) => m.user_id).sort()).toEqual([A, B].sort());
+    await as(B, () => db.exec(`insert into public.messages (conversation_id, body) values ('${cid}', 'Leg day?')`));
+    expect(await as(A, () => rows(`select body from public.messages where conversation_id = '${cid}'`))).toHaveLength(1);
+    await as(B, () => db.exec(`delete from public.conversation_members where conversation_id = '${cid}' and user_id = '${B}'`));
+    expect(await as(B, () => rows(`select * from public.messages where conversation_id = '${cid}'`))).toHaveLength(0);
+  });
+});

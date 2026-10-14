@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { CoachCard } from "@/components/coach-card";
+import { ChatButton } from "@/components/social/chat-button";
 import { Card, EmptyState, LinkButton, Section } from "@/components/common";
 import { useProfile } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -48,6 +49,7 @@ export default function HomePage() {
           {profile?.display_name ? t("home.greeting", { name: profile.display_name }) : t("home.greetingNoName")}
         </h1>
         </div>
+        <ChatButton />
         <Link href="/profile" aria-label={t("nav.profile")}>
           <Avatar url={profile?.avatar_url} name={profile?.display_name ?? ""} className="size-12 text-xl" />
         </Link>

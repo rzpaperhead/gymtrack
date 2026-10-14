@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { PRList } from "@/components/workout/pr-list";
+import { useBodyweightKg, useTrainingData } from "@/components/achievements";
+import { workoutCalories } from "@/lib/achievements";
 import { useExerciseCatalog } from "@/lib/catalog";
 import { displayWeight } from "@/lib/calc/units";
 import { canCreate } from "@/lib/entitlements";
@@ -29,6 +31,8 @@ function Summary() {
   const summary = useLiveQuery(() => sessionSummary(id), [id]);
   const workout = useLiveQuery(() => db.workouts.get(id), [id]);
   const [saveOpen, setSaveOpen] = useState(false);
+  const data = useTrainingData();
+  const bw = useBodyweightKg();
   const [tplName, setTplName] = useState("");
   const [limitHit, setLimitHit] = useState(false);
 
@@ -61,6 +65,18 @@ function Summary() {
         />
         <Stat label={t("summary.sets")} value={summary.setCount} />
         <Stat label={t("summary.exercises")} value={summary.exerciseCount} />
+        {data && workout && (
+          <Stat
+            label={t("achievements.calories")}
+            value={
+              <>
+                {f.number(workoutCalories(data, workout, bw))}
+                <span className="text-base text-muted-foreground"> kkal</span>
+              </>
+            }
+            sub={t("achievements.estimate")}
+          />
+        )}
       </div>
 
       <Section title={t("summary.newPRs")}>

@@ -48,7 +48,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
       const visible = clients.some((c) => (c as WindowClient).visibilityState === "visible");
-      if (visible && (data.tag ?? "rest-timer") === "rest-timer") return;
+      const tag = data.tag ?? "rest-timer";
+      if (visible && (tag === "rest-timer" || tag === "message")) return;
       return self.registration.showNotification(data.title, {
         body: data.body,
         tag: data.tag ?? "rest-timer",

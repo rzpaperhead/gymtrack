@@ -5,6 +5,7 @@ import { Flame, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
+import { BadgesSection, PeriodSummaryCard } from "@/components/achievements";
 import { Heatmap, HorizontalBars, LineTrend, WeeklyBars } from "@/components/charts";
 import { Card, EmptyState, NativeSelect, PageHeader, PaywallCard, Section, Stat } from "@/components/common";
 import { useProfile } from "@/components/providers/auth-provider";
@@ -86,6 +87,8 @@ export default function ProgressPage() {
       </div>
 
       {!history.rows.length && <EmptyState>{t("progress.noData")}</EmptyState>}
+      {history.rows.length > 0 && <PeriodSummaryCard />}
+      <BadgesSection />
       {limited && history.rows.length > 0 && <p className="text-xs text-muted-foreground">{t("progress.freeRange")}</p>}
 
       {derived.e1rmExercises.length > 0 && (

@@ -15,6 +15,7 @@ const T = {
     }),
     kudos: (p: Payload) => ({ title: `${p.from} memberi ${p.emoji}`, body: "untuk latihanmu. Terus semangat!", url: "/workout" }),
     challenge_invite: (p: Payload) => ({ title: `${p.from} mengajakmu ikut tantangan`, body: `"${p.title}" — buka GymTrack untuk bergabung.`, url: "/friends?tab=challenges" }),
+    message: (p: Payload) => ({ title: p.group ? `${p.group}` : `${p.from}`, body: p.group ? `${p.from}: ${p.body}` : `${p.body}`, url: `/chat/view?id=${p.conversation_id}` }),
   },
   en: {
     friend_request: (p: Payload) => ({ title: "Friend request", body: `${p.from} wants to be friends on GymTrack.`, url: "/friends" }),
@@ -26,6 +27,7 @@ const T = {
     }),
     kudos: (p: Payload) => ({ title: `${p.from} sent you ${p.emoji}`, body: "for your workout. Keep it up!", url: "/workout" }),
     challenge_invite: (p: Payload) => ({ title: `${p.from} invited you to a challenge`, body: `"${p.title}" — open GymTrack to join.`, url: "/friends?tab=challenges" }),
+    message: (p: Payload) => ({ title: p.group ? `${p.group}` : `${p.from}`, body: p.group ? `${p.from}: ${p.body}` : `${p.body}`, url: `/chat/view?id=${p.conversation_id}` }),
   },
 } as const;
 

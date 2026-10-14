@@ -5,6 +5,8 @@ import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/providers/auth-provider";
+import { useBodyweightKg, useTrainingData } from "@/components/achievements";
+import { workoutCalories } from "@/lib/achievements";
 import { kudosForWorkout } from "@/lib/data/friends";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
@@ -33,6 +35,8 @@ function View() {
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { start, dialog } = useStartWorkout();
+  const trainingData = useTrainingData();
+  const bw = useBodyweightKg();
 
   const data = useLiveQuery(async () => {
     const w = await db.workouts.get(id);
@@ -72,7 +76,10 @@ function View() {
       <p className="text-sm text-muted-foreground">
         {t("history.startedAt")}: {f.dateTime(new Date(w.started_at), { dateStyle: "full", timeStyle: "short" })}
       </p>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
+        {trainingData && w.status === "completed" && (
+          <Stat label={t("achievements.calories")} value={`${workoutCalories(trainingData, w, bw)}`} sub={`kkal · ${t("achievements.estimate")}`} />
+        )}
         <Stat label={t("summary.duration")} value={formatClock(durationSec(w))} />
         <Stat label={t("summary.volume")} value={f.number(Number(displayWeight(totalVolume(done), unit)), { maximumFractionDigits: 0 })} sub={unit} />
         <Stat label={t("summary.sets")} value={done.filter((s) => s.set_type !== "warmup").length} />

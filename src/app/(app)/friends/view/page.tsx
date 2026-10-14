@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, EyeOff, Flame, Trophy, UserMinus } from "lucide-react";
+import { Ban, EyeOff, Flame, MessageCircle, Trophy, UserMinus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { exerciseName, useExerciseCatalog } from "@/lib/catalog";
 import { weeklyConsistency, workoutsPerDay } from "@/lib/calc/stats";
 import { kgToUnit } from "@/lib/calc/units";
+import { openDirect } from "@/lib/data/chat";
 import { blockUser, friendProgress, giveKudos, KUDOS, listFriends, removeFriend, type Kudos } from "@/lib/data/friends";
 import { formatClock, useUnit } from "@/lib/hooks";
 
@@ -59,9 +60,12 @@ function FriendView() {
       <PageHeader back="/friends" title={name} />
       <div className="flex items-center gap-4">
         <Avatar url={row.avatar_url} name={name} className="size-20 text-3xl" />
-        {!p.hidden && (
-          <p className="text-muted-foreground">{t("friends.totalWorkouts", { count: p.total_workouts ?? 0 })}</p>
-        )}
+        <div className="min-w-0 flex-1 space-y-2">
+          {!p.hidden && <p className="text-muted-foreground">{t("friends.totalWorkouts", { count: p.total_workouts ?? 0 })}</p>}
+          <Button size="sm" onClick={async () => router.push(`/chat/view?id=${await openDirect(id)}`)}>
+            <MessageCircle aria-hidden /> {t("chat.sendMessage")}
+          </Button>
+        </div>
       </div>
 
       {p.hidden ? (

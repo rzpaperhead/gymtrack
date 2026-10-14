@@ -8,6 +8,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
+import { useBadgeWatcher } from "@/components/achievements";
 import { ActiveWorkoutBar } from "@/components/shell/active-workout-bar";
 import { RestTimerBar } from "@/components/shell/rest-timer-bar";
 import { db } from "@/lib/db/local";
@@ -56,6 +57,7 @@ function usePremiumArrival() {
 export function AppShell({ children }: { children: ReactNode }) {
   const ok = useGate();
   usePremiumArrival();
+  useBadgeWatcher();
   const pathname = usePathname();
   const t = useTranslations();
   const online = useOnline();

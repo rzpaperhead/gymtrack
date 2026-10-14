@@ -29,6 +29,8 @@ const APP_ROUTES = [
   "/auth/reset",
   "/friends",
   "/friends/view",
+  "/chat",
+  "/chat/view",
 ];
 
 export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } = createSerwistRoute({

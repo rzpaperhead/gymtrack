@@ -10,6 +10,8 @@ import { Avatar } from "@/components/avatar";
 import { Card, EmptyState, Field, LinkButton, PageHeader, Section, Segmented } from "@/components/common";
 import { Challenges } from "@/components/social/challenges";
 import { Leaderboard } from "@/components/social/leaderboard";
+import { ActivityFeed } from "@/components/social/feed";
+import { ChatButton } from "@/components/social/chat-button";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,21 +32,21 @@ export default function FriendsPage() {
   }
   return (
     <div className="space-y-6">
-      <PageHeader back="/profile" title={t("title")} />
+      <PageHeader back="/profile" title={t("title")} actions={<ChatButton />} />
       {!online ? <EmptyState>{t("needOnline")}</EmptyState> : <SocialTabs />}
     </div>
   );
 }
 
-type Tab = "friends" | "leaderboard" | "challenges";
+type Tab = "feed" | "friends" | "leaderboard" | "challenges";
 
 function SocialTabs() {
   const t = useTranslations("social");
-  const [tab, setTab] = useState<Tab>("friends");
+  const [tab, setTab] = useState<Tab>("feed");
   useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("tab") as Tab | null;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- deep link from notifications
-    if (q === "leaderboard" || q === "challenges") setTab(q);
+    if (q === "leaderboard" || q === "challenges" || q === "friends") setTab(q);
   }, []);
   return (
     <>
@@ -53,11 +55,13 @@ function SocialTabs() {
         value={tab}
         onChange={setTab}
         options={[
+          { value: "feed", label: t("tab.feed") },
           { value: "friends", label: t("tab.friends") },
           { value: "leaderboard", label: t("tab.leaderboard") },
           { value: "challenges", label: t("tab.challenges") },
         ]}
       />
+      {tab === "feed" && <ActivityFeed />}
       {tab === "friends" && <FriendsContent />}
       {tab === "leaderboard" && <Leaderboard />}
       {tab === "challenges" && <Challenges />}
