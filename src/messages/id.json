@@ -132,7 +132,9 @@
   "goals": {
     "strength": "Kekuatan",
     "hypertrophy": "Hipertrofi (otot)",
-    "general": "Kebugaran umum"
+    "general": "Kebugaran umum",
+    "lose_weight": "Menurunkan berat badan",
+    "gain_weight": "Menaikkan berat badan"
   },
   "home": {
     "greeting": "Halo, {name}!",

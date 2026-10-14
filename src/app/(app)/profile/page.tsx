@@ -27,7 +27,7 @@ import { clearLocalData, db } from "@/lib/db/local";
 import { syncNow, useSyncStatus } from "@/lib/db/sync-manager";
 import { formatClock, useEntitlements, useIsAdmin } from "@/lib/hooks";
 import { authHeader } from "@/lib/supabase/client";
-import type { Goal, Locale, ThemePref, Unit } from "@/lib/types";
+import { GOALS, type Goal, type Locale, type ThemePref, type Unit } from "@/lib/types";
 
 const REST = [30, 45, 60, 90, 120, 150, 180, 240, 300];
 
@@ -189,7 +189,7 @@ export default function ProfilePage() {
             ))}
           </NativeSelect>
           <NativeSelect label={t("profile.goal")} value={profile.goal} onChange={(v) => set({ goal: v as Goal })}>
-            {(["strength", "hypertrophy", "general"] as const).map((g) => (
+            {GOALS.map((g) => (
               <option key={g} value={g}>
                 {t(`goals.${g}`)}
               </option>

@@ -3,7 +3,8 @@
 
 export type Locale = "id" | "en";
 export type Unit = "kg" | "lb";
-export type Goal = "strength" | "hypertrophy" | "general";
+export const GOALS = ["strength", "hypertrophy", "general", "lose_weight", "gain_weight"] as const;
+export type Goal = (typeof GOALS)[number];
 export type ThemePref = "dark" | "light" | "system";
 
 export const MUSCLES = [

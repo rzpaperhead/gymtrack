@@ -18,13 +18,13 @@ import { dateKey } from "@/lib/calc/stats";
 import { saveBodyMetric } from "@/lib/data/body";
 import { updateProfile } from "@/lib/data/profile";
 import { nowIso } from "@/lib/db/session";
-import type { Goal, Locale, Unit } from "@/lib/types";
+import { GOALS, type Locale, type Unit } from "@/lib/types";
 
 const schema = z.object({
   display_name: z.string().trim().max(60),
   locale: z.enum(["id", "en"]),
   unit: z.enum(["kg", "lb"]),
-  goal: z.enum(["strength", "hypertrophy", "general"]),
+  goal: z.enum(GOALS),
   weekly_target: z.number().int().min(1).max(7),
   bodyweight: z.string().refine((v) => v.trim() === "" || parseWeightInput(v, "kg") != null),
 });
@@ -144,7 +144,7 @@ export default function OnboardingPage() {
               render={({ field }) => (
                 <fieldset className="grid gap-2">
                   <legend className="mb-1.5 text-sm font-medium">{t("onboarding.goal")}</legend>
-                  {(["strength", "hypertrophy", "general"] as Goal[]).map((g) => (
+                  {GOALS.map((g) => (
                     <label
                       key={g}
                       className="flex min-h-14 cursor-pointer items-center gap-3 rounded-xl border px-4 has-checked:border-primary has-checked:bg-accent/40"

@@ -11,6 +11,10 @@ export const REP_RANGE: Record<Goal, [number, number]> = {
   strength: [3, 6],
   hypertrophy: [8, 12],
   general: [8, 12],
+  // Fat loss: moderate loads, more reps & work per session.
+  lose_weight: [10, 15],
+  // Mass gain: classic hypertrophy range with progressive overload.
+  gain_weight: [8, 12],
 };
 
 const LOWER: Muscle[] = ["quads", "hamstrings", "glutes", "calves", "adductors"];

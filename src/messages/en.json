@@ -132,7 +132,9 @@
   "goals": {
     "strength": "Strength",
     "hypertrophy": "Hypertrophy (muscle)",
-    "general": "General fitness"
+    "general": "General fitness",
+    "lose_weight": "Lose weight",
+    "gain_weight": "Gain weight"
   },
   "home": {
     "greeting": "Hi, {name}!",
