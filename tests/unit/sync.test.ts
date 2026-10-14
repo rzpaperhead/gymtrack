@@ -181,3 +181,26 @@ describe("prefill from last session", () => {
     expect(done).toMatchObject({ weight_kg: 120, reps: 4 });
   });
 });
+
+describe("guest → account migration", () => {
+  it("re-owns every local row and queues it for upload", async () => {
+    const { migrateGuestData } = await import("@/lib/db/migrate-guest");
+    const GUEST = "99999999-9999-4999-8999-999999999999";
+    setSessionUser(GUEST, { sync: false });
+    const id = await startWorkout({ templateId: PULL_TEMPLATE });
+    await finishWorkout(id, "complete");
+    expect(await db.outbox.count()).toBe(0); // guests don't queue anything
+
+    setSessionUser(USER, { sync: true });
+    await migrateGuestData(GUEST, USER);
+    const w = await db.workouts.get(id);
+    expect(w?.user_id).toBe(USER);
+    const sets = await db.sets.where("workout_id").equals(id).toArray();
+    expect(sets.every((s) => s.user_id === USER)).toBe(true);
+    expect(await db.outbox.get(`workouts:${id}`)).toBeDefined();
+
+    const remote = new FakeRemote();
+    await push(remote);
+    expect(remote.tables.get("workouts")?.get(id)?.user_id).toBe(USER);
+  });
+});

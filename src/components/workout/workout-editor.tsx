@@ -3,7 +3,7 @@
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable, useSortable } from "@dnd-kit/react/sortable";
 import { useLiveQuery } from "dexie-react-hooks";
-import { ArrowDown, ArrowUp, GripVertical, Link2, Link2Off, MoreHorizontal, Plus, StickyNote, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Flame, GripVertical, Snowflake, Link2, Link2Off, MoreHorizontal, Plus, StickyNote, Trash2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import { NativeSelect } from "@/components/common";
@@ -20,8 +20,9 @@ import { SET_TYPES, type Exercise, type WorkoutExercise, type WorkoutSet } from 
 import { cn } from "@/lib/utils";
 import {
   addExercises,
+  sessionMuscles,
   addSet,
-  lastPerformance,
+  lastPerformances,
   removeExercise,
   removeSet,
   reorderExercises,
@@ -32,6 +33,8 @@ import {
   updateSet,
 } from "@/lib/workout/actions";
 import { startRest } from "@/lib/workout/rest-timer";
+import { cooldownFor, warmupFor } from "@/lib/exercises/routines";
+import { CoachHint } from "@/components/workout/coach-hint";
 
 const REST_OPTIONS = [0, 30, 45, 60, 75, 90, 120, 150, 180, 210, 240, 300];
 
@@ -58,6 +61,9 @@ export function WorkoutEditor({ workoutId, mode }: Props) {
 
   if (!data || !catalog) return null;
   const { wes, sets } = data;
+  const cat = (id: string) => catalog.byId.get(id)?.category ?? "strength";
+  const hasWarmup = wes.some((w) => cat(w.exercise_id) === "warmup");
+  const hasCooldown = wes.some((w) => cat(w.exercise_id) === "cooldown");
 
   return (
     <div className="space-y-4">
@@ -93,6 +99,24 @@ export function WorkoutEditor({ workoutId, mode }: Props) {
       <Button variant="secondary" size="xl" className="w-full" onClick={() => setPicker(true)}>
         <Plus aria-hidden /> {t("active.addExercise")}
       </Button>
+      {mode === "active" && (
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            variant="outline"
+            disabled={hasWarmup}
+            onClick={async () => addExercises(workoutId, warmupFor(await sessionMuscles(workoutId)), { atStart: true })}
+          >
+            <Flame aria-hidden /> {t("active.addWarmup")}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={hasCooldown}
+            onClick={async () => addExercises(workoutId, cooldownFor(await sessionMuscles(workoutId)))}
+          >
+            <Snowflake aria-hidden /> {t("active.addCooldown")}
+          </Button>
+        </div>
+      )}
       <ExercisePicker open={picker} onOpenChange={setPicker} onPick={(ids) => addExercises(workoutId, ids)} />
     </div>
   );
@@ -130,7 +154,8 @@ function ExerciseCard({
   const [options, setOptions] = useState(false);
   const [setOptionsFor, setSetOptionsFor] = useState<WorkoutSet | null>(null);
   const { ref, handleRef, isDragging } = useSortable({ id: we.id, index });
-  const previous = useLiveQuery(() => lastPerformance(we.exercise_id, workoutId), [we.exercise_id, workoutId]);
+  const history = useLiveQuery(() => lastPerformances(we.exercise_id, workoutId, 2), [we.exercise_id, workoutId]);
+  const previous = history?.[0];
   const type = exercise?.type ?? "weight_reps";
   const name = exerciseName(exercise, locale);
   const restSec = we.rest_sec ?? exercise?.default_rest_sec ?? profile?.default_rest_sec ?? 120;
@@ -152,7 +177,7 @@ function ExerciseCard({
     const last = groupWes[groupWes.length - 1];
     if (inSuperset && last.id !== we.id) return;
     const nextLabel = inSuperset ? exerciseName(catalogById.get(groupWes[0].exercise_id), locale) : name;
-    void startRest(restSec, nextLabel);
+    void startRest(restSec, nextLabel, { title: t("rest.done"), body: t("rest.doneBody", { label: nextLabel }) });
   };
 
   return (
@@ -177,6 +202,9 @@ function ExerciseCard({
           <GripVertical className="size-5" aria-hidden />
         </button>
         <div className="min-w-0 flex-1">
+          {exercise?.category && exercise.category !== "strength" && (
+            <p className="text-xs font-bold uppercase text-chart-3">{t(`groups.${exercise.category}`)}</p>
+          )}
           {inSuperset && !linkedToPrev && (
             <p className="text-xs font-bold uppercase text-chart-2">
               {t("active.superset")} {we.superset_group?.toUpperCase()}
@@ -195,6 +223,15 @@ function ExerciseCard({
         </p>
       )}
 
+      {mode === "active" && exercise && history && (
+        <CoachHint
+          exercise={exercise}
+          history={history}
+          onApply={async (weight_kg, reps) => {
+            for (const s of sets) if (!s.completed_at && s.set_type !== "warmup") await updateSet(s.id, { weight_kg, reps });
+          }}
+        />
+      )}
       <div
         className={cn(
           "grid gap-1 px-0.5 pb-1 text-center text-[0.7rem] font-semibold uppercase tracking-wide text-muted-foreground",

@@ -2,7 +2,7 @@ import { compressImage } from "@/lib/data/photos";
 import { setMeta } from "@/lib/db/local";
 import { newId, requireUserId } from "@/lib/db/session";
 import { syncNow } from "@/lib/db/sync-manager";
-import { getSupabase } from "@/lib/supabase/client";
+import { authHeader, getSupabase } from "@/lib/supabase/client";
 
 /** Online-only premium flows: promo codes, bank-transfer confirmations, admin review. */
 
@@ -54,8 +54,18 @@ export async function submitPaymentProof(file: File, amountIdr: number, note: st
   const blob = await compressImage(file);
   const up = await sb.storage.from(PROOF_BUCKET).upload(path, blob, { contentType: "image/jpeg" });
   if (up.error) throw up.error;
-  const { error } = await sb.from("payment_confirmations").insert({ amount_idr: amountIdr, proof_path: path, note: note.trim() || null });
+  const { data, error } = await sb
+    .from("payment_confirmations")
+    .insert({ amount_idr: amountIdr, proof_path: path, note: note.trim() || null })
+    .select("id")
+    .single();
   if (error) throw error;
+  // Email the admin; never block the user on it.
+  void fetch("/api/payments/notify", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ id: data.id }),
+  }).catch(() => {});
 }
 
 export async function myConfirmations(): Promise<PaymentConfirmation[]> {

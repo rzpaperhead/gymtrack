@@ -1,17 +1,22 @@
 import { db, getMeta, setMeta } from "@/lib/db/local";
+import { cancelRestPush, scheduleRestPush } from "@/lib/push";
 
 /** Persisted in IndexedDB so a reload or app switch doesn't lose the countdown. */
 export interface RestTimer {
   endsAt: number; // epoch ms
   durationSec: number;
   label: string;
+  /** Localised text for the background push alert. */
+  push?: { title: string; body: string };
 }
 
 const KEY = "restTimer";
 
-export async function startRest(durationSec: number, label: string) {
+export async function startRest(durationSec: number, label: string, push?: RestTimer["push"]) {
   if (durationSec <= 0) return stopRest();
-  await setMeta(KEY, { endsAt: Date.now() + durationSec * 1000, durationSec, label } satisfies RestTimer);
+  const endsAt = Date.now() + durationSec * 1000;
+  await setMeta(KEY, { endsAt, durationSec, label, push } satisfies RestTimer);
+  if (push) void scheduleRestPush(endsAt, push.title, push.body);
 }
 
 export async function adjustRest(deltaSec: number) {
@@ -19,10 +24,13 @@ export async function adjustRest(deltaSec: number) {
   if (!cur) return;
   const endsAt = Math.max(Date.now(), cur.endsAt + deltaSec * 1000);
   await setMeta(KEY, { ...cur, endsAt, durationSec: Math.max(0, cur.durationSec + deltaSec) });
+  if (cur.push) void scheduleRestPush(endsAt, cur.push.title, cur.push.body);
 }
 
 export async function stopRest() {
+  const cur = await getMeta<RestTimer | null>(KEY);
   await db.meta.delete(KEY);
+  if (cur?.push && cur.endsAt > Date.now()) void cancelRestPush();
 }
 
 export const REST_TIMER_KEY = KEY;

@@ -4,7 +4,8 @@ import { durationSec, totalVolume } from "@/lib/calc/stats";
 import { alive, db } from "@/lib/db/local";
 import { newId, nowIso, requireUserId } from "@/lib/db/session";
 import { patchRow, saveRow, saveRows, softDelete } from "@/lib/db/write";
-import type { ExerciseType, SetType, Workout, WorkoutExercise, WorkoutSet } from "@/lib/types";
+import { ROUTINE_DEFAULTS } from "@/lib/exercises/routines";
+import type { ExerciseType, Muscle, SetType, Workout, WorkoutExercise, WorkoutSet } from "@/lib/types";
 
 export class WorkoutInProgressError extends Error {
   constructor(public workoutId: string) {
@@ -17,21 +18,29 @@ export async function getActiveWorkout(): Promise<Workout | undefined> {
   return list.filter(alive).sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
 }
 
-/** Sets of the most recent *completed* session that included this exercise. */
-export async function lastPerformance(exerciseId: string, excludeWorkoutId?: string): Promise<WorkoutSet[]> {
+/** Sets of the `n` most recent *completed* sessions with this exercise, newest first. */
+export async function lastPerformances(exerciseId: string, excludeWorkoutId?: string, n = 2): Promise<WorkoutSet[][]> {
   const wes = (await db.workout_exercises.where("exercise_id").equals(exerciseId).toArray()).filter(
     (we) => alive(we) && we.workout_id !== excludeWorkoutId,
   );
   if (!wes.length) return [];
-  const workouts = (await db.workouts.bulkGet([...new Set(wes.map((we) => we.workout_id))])).filter(
-    (w): w is Workout => alive(w) && w.status === "completed",
-  );
-  const latest = workouts.sort((a, b) => b.started_at.localeCompare(a.started_at))[0];
-  if (!latest) return [];
-  const we = wes.filter((x) => x.workout_id === latest.id).sort((a, b) => a.position - b.position)[0];
-  return (await db.sets.where("workout_exercise_id").equals(we.id).toArray())
-    .filter(alive)
-    .sort((a, b) => a.position - b.position);
+  const workouts = (await db.workouts.bulkGet([...new Set(wes.map((we) => we.workout_id))]))
+    .filter((w): w is Workout => alive(w) && w.status === "completed")
+    .sort((a, b) => b.started_at.localeCompare(a.started_at))
+    .slice(0, n);
+  const out: WorkoutSet[][] = [];
+  for (const w of workouts) {
+    const we = wes.filter((x) => x.workout_id === w.id).sort((a, b) => a.position - b.position)[0];
+    out.push(
+      (await db.sets.where("workout_exercise_id").equals(we.id).toArray()).filter(alive).sort((a, b) => a.position - b.position),
+    );
+  }
+  return out;
+}
+
+/** Sets of the most recent *completed* session that included this exercise. */
+export async function lastPerformance(exerciseId: string, excludeWorkoutId?: string): Promise<WorkoutSet[]> {
+  return (await lastPerformances(exerciseId, excludeWorkoutId, 1))[0] ?? [];
 }
 
 function blankSet(userId: string, workoutId: string, weId: string, position: number, p: Partial<WorkoutSet> = {}): WorkoutSet {
@@ -70,7 +79,7 @@ async function buildExercise(
   workoutId: string,
   exerciseId: string,
   position: number,
-  opts: { targetSets?: number; restSec?: number | null; superset?: string | null } = {},
+  opts: { targetSets?: number; restSec?: number | null; superset?: string | null; defaults?: Partial<WorkoutSet> } = {},
 ): Promise<{ we: WorkoutExercise; sets: WorkoutSet[] }> {
   const we: WorkoutExercise = {
     id: newId(),
@@ -97,7 +106,7 @@ async function buildExercise(
     }
   } else {
     const n = Math.max(1, opts.targetSets ?? 1);
-    sets = Array.from({ length: n }, (_, i) => blankSet(userId, workoutId, we.id, i));
+    sets = Array.from({ length: n }, (_, i) => blankSet(userId, workoutId, we.id, i, opts.defaults));
   }
   return { we, sets };
 }
@@ -141,19 +150,50 @@ export async function startWorkout(opts: { templateId?: string | null; name?: st
   return workout.id;
 }
 
-export async function addExercises(workoutId: string, exerciseIds: string[]) {
+export async function addExercises(workoutId: string, exerciseIds: string[], opts: { atStart?: boolean } = {}) {
   const userId = requireUserId();
-  const existing = (await db.workout_exercises.where("workout_id").equals(workoutId).toArray()).filter(alive);
-  let pos = existing.reduce((m, we) => Math.max(m, we.position), -1) + 1;
+  const existing = (await db.workout_exercises.where("workout_id").equals(workoutId).toArray())
+    .filter(alive)
+    .sort((a, b) => a.position - b.position);
+  let pos = opts.atStart ? 0 : existing.reduce((m, we) => Math.max(m, we.position), -1) + 1;
   const wes: WorkoutExercise[] = [];
   const sets: WorkoutSet[] = [];
   for (const exId of exerciseIds) {
-    const built = await buildExercise(userId, workoutId, exId, pos++);
+    const ex = await getExercise(exId);
+    const routine = ex?.category === "warmup" || ex?.category === "cooldown";
+    const built = await buildExercise(userId, workoutId, exId, pos++, {
+      // Warm-up / stretch items: one set, pre-filled, no rest timer.
+      ...(routine
+        ? {
+            restSec: 0,
+            defaults: ex.type === "time" ? { duration_sec: ROUTINE_DEFAULTS.duration_sec } : { reps: ROUTINE_DEFAULTS.reps },
+          }
+        : {}),
+    });
     wes.push(built.we);
     sets.push(...built.sets);
   }
+  if (opts.atStart) {
+    await saveRows(
+      "workout_exercises",
+      existing.map((we, i) => ({ ...we, position: exerciseIds.length + i })),
+    );
+  }
   await saveRows("workout_exercises", wes);
   await saveRows("sets", sets);
+}
+
+/** Muscles (primary + secondary) of the strength exercises in a session. */
+export async function sessionMuscles(workoutId: string): Promise<Muscle[]> {
+  const wes = (await db.workout_exercises.where("workout_id").equals(workoutId).toArray()).filter(alive);
+  const out = new Set<Muscle>();
+  for (const we of wes) {
+    const ex = await getExercise(we.exercise_id);
+    if (!ex || (ex.category ?? "strength") !== "strength") continue;
+    out.add(ex.primary_muscle);
+    ex.secondary_muscles.forEach((m) => out.add(m));
+  }
+  return [...out];
 }
 
 export async function addSet(weId: string) {
@@ -336,7 +376,7 @@ export async function sessionSummary(workoutId: string): Promise<SessionSummary 
   const types = new Map<string, ExerciseType>();
   for (const we of wes) {
     const ex = await getExercise(we.exercise_id);
-    if (ex) types.set(ex.id, ex.type);
+    if (ex && (ex.category ?? "strength") === "strength") types.set(ex.id, ex.type);
   }
   return {
     durationSec: durationSec(w),

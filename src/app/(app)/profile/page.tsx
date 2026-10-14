@@ -32,7 +32,7 @@ export default function ProfilePage() {
   const f = useFormatter();
   const router = useRouter();
   const profile = useProfile();
-  const { email, mode, signOut, userId } = useAuth();
+  const { email, mode, signOut, userId, guest } = useAuth();
   const { setLocale } = useSetLocale();
   const ent = useEntitlements();
   const admin = useIsAdmin();
@@ -56,7 +56,7 @@ export default function ProfilePage() {
 
   const deleteAccount = useMutation({
     mutationFn: async () => {
-      if (mode === "supabase") {
+      if (mode === "supabase" && !guest) {
         const res = await fetch("/api/account", { method: "DELETE", headers: await authHeader() });
         if (!res.ok) throw new Error(await res.text());
       }
@@ -109,7 +109,12 @@ export default function ProfilePage() {
         </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{profile.display_name || "—"}</p>
-          <p className="truncate text-sm text-muted-foreground">{email ?? t("common.demoMode")}</p>
+          <p className="truncate text-sm text-muted-foreground">{email ?? (guest ? t("auth.guestLabel") : t("common.demoMode"))}</p>
+          {guest && (
+            <Link href="/login" className="text-sm font-semibold text-primary underline-offset-2 hover:underline">
+              {t("auth.saveProgress")}
+            </Link>
+          )}
           {profile.avatar_url && (
             <button type="button" className="text-xs text-muted-foreground underline underline-offset-2" onClick={() => removeAvatar()}>
               {t("profile.removePhoto")}

@@ -5,6 +5,7 @@ import { CalendarDays, Flame, Play, Plus } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
+import { CoachCard } from "@/components/coach-card";
 import { Card, EmptyState, LinkButton, Section } from "@/components/common";
 import { useProfile } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
@@ -124,6 +125,8 @@ export default function HomePage() {
           </Card>
         </div>
       )}
+
+      {history && history.rows.length > 0 && <CoachCard history={history} weeklyTarget={profile?.weekly_target ?? 3} />}
 
       <Section
         title={t("home.recent")}

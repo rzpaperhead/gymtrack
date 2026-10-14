@@ -87,15 +87,25 @@ export type Plan = "monthly" | "yearly";
 export const MANUAL_PRICING = {
   usdOriginal: Number(process.env.NEXT_PUBLIC_PRICE_USD_ORIGINAL ?? 5),
   usd: Number(process.env.NEXT_PUBLIC_PRICE_USD ?? 0.9),
-  /** How long an approved transfer unlocks Premium. */
-  premiumDays: Number(process.env.NEXT_PUBLIC_PREMIUM_DAYS ?? 30),
+  /** One-time payment unlocks Premium permanently (null = no end date). */
+  premiumDays: null as number | null,
   bankName: "Bank Jago",
   accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ?? "108882753039",
-  accountHolder: process.env.NEXT_PUBLIC_BANK_ACCOUNT_HOLDER ?? "",
+  accountHolder: process.env.NEXT_PUBLIC_BANK_ACCOUNT_HOLDER ?? "Raizaldy Fahmi",
   fallbackUsdIdr: 16500,
 } as const;
 
 /** IDR amount rounded up to the nearest Rp100 so transfers are easy to type. */
 export function usdToIdr(usd: number, rate: number): number {
   return Math.ceil((usd * rate) / 100) * 100;
+}
+
+/**
+ * Unique 3-digit code (1–99) added to the transfer amount so the admin can match
+ * a bank mutation to a user at a glance. Stable per user.
+ */
+export function uniqueTransferCode(userId: string): number {
+  let h = 0;
+  for (const c of userId) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return (h % 99) + 1;
 }

@@ -5,13 +5,13 @@ import { Check, Copy, Crown, ImageUp, Ticket } from "lucide-react";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Card, Field, PageHeader, Section } from "@/components/common";
+import { Card, Field, LinkButton, PageHeader, Section } from "@/components/common";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { track } from "@/lib/analytics";
-import { MANUAL_PRICING, usdToIdr } from "@/lib/entitlements";
+import { MANUAL_PRICING, uniqueTransferCode, usdToIdr } from "@/lib/entitlements";
 import { myConfirmations, redeemPromoCode, submitPaymentProof } from "@/lib/data/premium";
 import { db } from "@/lib/db/local";
 import { useEntitlements, useIsAdmin, useOnline } from "@/lib/hooks";
@@ -24,7 +24,7 @@ export default function PremiumPage() {
   const f = useFormatter();
   const ent = useEntitlements();
   const admin = useIsAdmin();
-  const { mode, userId } = useAuth();
+  const { mode, userId, guest } = useAuth();
   const online = useOnline();
   const sub = useLiveQuery(async () => (userId ? db.subscriptions.get(userId) : undefined), [userId]);
 
@@ -38,7 +38,8 @@ export default function PremiumPage() {
     staleTime: 6 * 3600_000,
   });
   const rate = fx.data?.rate ?? MANUAL_PRICING.fallbackUsdIdr;
-  const idr = usdToIdr(MANUAL_PRICING.usd, rate);
+  const unique = userId ? uniqueTransferCode(userId) : 0;
+  const idr = usdToIdr(MANUAL_PRICING.usd, rate) + unique;
   const idrOriginal = usdToIdr(MANUAL_PRICING.usdOriginal, rate);
   const rupiah = (n: number) => f.number(n, { style: "currency", currency: "IDR", maximumFractionDigits: 0 });
   const usd = (n: number) => f.number(n, { style: "currency", currency: "USD", maximumFractionDigits: 2 });
@@ -73,7 +74,14 @@ export default function PremiumPage() {
         ))}
       </ul>
 
-      {mode === "demo" ? (
+      {guest ? (
+        <div className="space-y-3 rounded-2xl border border-dashed p-4 text-center">
+          <p className="text-muted-foreground">{t("premium.signUpFirst")}</p>
+          <LinkButton href="/login" className="w-full">
+            {t("auth.signUp")}
+          </LinkButton>
+        </div>
+      ) : mode === "demo" ? (
         <DemoToggle />
       ) : !online ? (
         <p className="rounded-2xl border border-dashed p-4 text-center text-muted-foreground">{t("premium.needOnline")}</p>
@@ -89,7 +97,7 @@ export default function PremiumPage() {
                   </p>
                   <p className="num text-5xl">{rupiah(idr)}</p>
                   <p className="text-sm text-muted-foreground">
-                    {usd(MANUAL_PRICING.usd)} · {t("premium.forDays", { days: MANUAL_PRICING.premiumDays })}
+                    {usd(MANUAL_PRICING.usd)} · {t("premium.oneTime")}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {t("premium.rateNote", { rate: f.number(Math.round(rate)), original: rupiah(idrOriginal) })}
@@ -97,6 +105,7 @@ export default function PremiumPage() {
                 </div>
                 <ol className="list-decimal space-y-2 pl-5 text-sm">
                   <li>{t("premium.step1", { amount: rupiah(idr) })}</li>
+                  <li className="text-muted-foreground">{t("premium.uniqueNote", { code: unique })}</li>
                   <li>{t("premium.step2")}</li>
                   <li>{t("premium.step3")}</li>
                 </ol>
@@ -108,7 +117,7 @@ export default function PremiumPage() {
         )
       )}
 
-      {mode === "supabase" && online && !admin && <RedeemCode />}
+      {mode === "supabase" && !guest && online && !admin && <RedeemCode />}
       <p className="text-center text-sm text-muted-foreground">{t("premium.keepData")}</p>
     </div>
   );

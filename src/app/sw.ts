@@ -34,6 +34,31 @@ const serwist = new Serwist({
   },
 });
 
+// Background rest alert sent by /api/push/dispatch. Skipped when the app is
+// already on screen (it beeps/vibrates itself).
+self.addEventListener("push", (event) => {
+  const data = (() => {
+    try {
+      return event.data?.json() as { title: string; body: string; tag?: string };
+    } catch {
+      return null;
+    }
+  })();
+  if (!data) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      if (clients.some((c) => (c as WindowClient).visibilityState === "visible")) return;
+      return self.registration.showNotification(data.title, {
+        body: data.body,
+        tag: data.tag ?? "rest-timer",
+        icon: "/icons/192",
+        badge: "/icons/192",
+        requireInteraction: false,
+      });
+    }),
+  );
+});
+
 // Focus the app when the rest-timer notification is tapped.
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();

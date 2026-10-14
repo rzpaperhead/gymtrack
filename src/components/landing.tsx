@@ -24,7 +24,7 @@ export function Landing() {
   useEffect(() => {
     try {
       const keys = Object.keys(localStorage);
-      if (localStorage.getItem("gt-demo") === "1" || keys.some((k) => /^sb-.+-auth-token$/.test(k))) router.replace("/home");
+      if (localStorage.getItem("gt-demo") === "1" || !!localStorage.getItem("gt-guest") || keys.some((k) => /^sb-.+-auth-token$/.test(k))) router.replace("/home");
     } catch {}
   }, [router]);
 

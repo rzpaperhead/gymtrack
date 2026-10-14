@@ -1,4 +1,4 @@
-import type { Equipment, Exercise, ExerciseType, Muscle } from "@/lib/types";
+import type { Equipment, Exercise, ExerciseCategory, ExerciseType, Muscle } from "@/lib/types";
 
 /**
  * Deterministic UUID for built-in rows so the client bundle and the SQL seed
@@ -17,6 +17,7 @@ type Row = [
   equipment: Equipment,
   type: ExerciseType,
   rest: number,
+  category?: ExerciseCategory,
 ];
 
 // APPEND ONLY. The first column becomes part of the id, never renumber.
@@ -113,11 +114,42 @@ const ROWS: Row[] = [
   [83, "Sepeda Statis", "Stationary Bike", "cardio", [], "cardio_machine", "distance_time", 0],
   [84, "Rowing Machine", "Rowing Machine", "cardio", ["back"], "cardio_machine", "distance_time", 0],
   [85, "Lompat Tali", "Jump Rope", "cardio", ["calves"], "other", "time", 60],
+  // Warm-up: dynamic movements
+  [86, "Jumping Jack", "Jumping Jack", "full_body", ["calves", "shoulders"], "bodyweight", "time", 0, "warmup"],
+  [87, "Putaran Lengan", "Arm Circles", "shoulders", [], "bodyweight", "time", 0, "warmup"],
+  [88, "Ayunan Kaki Depan-Belakang", "Leg Swing (Front-Back)", "hamstrings", ["glutes"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [89, "Ayunan Kaki Samping", "Leg Swing (Side)", "adductors", ["glutes"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [90, "Putaran Pinggul", "Hip Circles", "glutes", ["lower_back"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [91, "Squat Tanpa Beban", "Bodyweight Squat", "quads", ["glutes"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [92, "Lunge dengan Putar Badan", "Lunge with Twist", "quads", ["obliques", "glutes"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [93, "Inchworm", "Inchworm", "full_body", ["hamstrings", "shoulders"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [94, "World's Greatest Stretch", "World's Greatest Stretch", "glutes", ["hamstrings", "back"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [95, "Band Pull-Apart", "Band Pull-Apart", "back", ["shoulders"], "band", "bodyweight_reps", 0, "warmup"],
+  [96, "Cat-Cow", "Cat-Cow", "lower_back", ["abs"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [97, "High Knees", "High Knees", "cardio", ["quads"], "bodyweight", "time", 0, "warmup"],
+  [98, "Putar Badan", "Torso Twist", "obliques", ["abs"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  [99, "Scapular Push Up", "Scapular Push Up", "chest", ["shoulders"], "bodyweight", "bodyweight_reps", 0, "warmup"],
+  // Cool-down: static stretches
+  [100, "Peregangan Dada di Pintu", "Doorway Chest Stretch", "chest", ["shoulders"], "bodyweight", "time", 0, "cooldown"],
+  [101, "Child's Pose", "Child's Pose", "lats", ["lower_back"], "bodyweight", "time", 0, "cooldown"],
+  [102, "Peregangan Hamstring Duduk", "Seated Hamstring Stretch", "hamstrings", ["lower_back"], "bodyweight", "time", 0, "cooldown"],
+  [103, "Peregangan Paha Depan Berdiri", "Standing Quad Stretch", "quads", [], "bodyweight", "time", 0, "cooldown"],
+  [104, "Pigeon Stretch", "Pigeon Stretch", "glutes", [], "bodyweight", "time", 0, "cooldown"],
+  [105, "Peregangan Bahu Silang", "Cross-Body Shoulder Stretch", "shoulders", [], "bodyweight", "time", 0, "cooldown"],
+  [106, "Peregangan Trisep di Atas Kepala", "Overhead Triceps Stretch", "triceps", ["lats"], "bodyweight", "time", 0, "cooldown"],
+  [107, "Peregangan Betis di Dinding", "Wall Calf Stretch", "calves", [], "bodyweight", "time", 0, "cooldown"],
+  [108, "Butterfly Stretch", "Butterfly Stretch", "adductors", [], "bodyweight", "time", 0, "cooldown"],
+  [109, "Cobra Stretch", "Cobra Stretch", "abs", ["lower_back"], "bodyweight", "time", 0, "cooldown"],
+  [110, "Peregangan Fleksor Pinggul", "Kneeling Hip Flexor Stretch", "quads", ["glutes"], "bodyweight", "time", 0, "cooldown"],
+  [111, "Peregangan Bisep di Dinding", "Wall Biceps Stretch", "biceps", ["chest"], "bodyweight", "time", 0, "cooldown"],
+  [112, "Tarik Lutut ke Dada", "Knees-to-Chest Stretch", "lower_back", ["glutes"], "bodyweight", "time", 0, "cooldown"],
+  [113, "Peregangan Trapezius Leher", "Upper Trap Neck Stretch", "traps", [], "bodyweight", "time", 0, "cooldown"],
 ];
 
 export const BUILTIN_EXERCISES: Exercise[] = ROWS.map(
-  ([n, name_id, name_en, primary_muscle, secondary_muscles, equipment, type, default_rest_sec]) => ({
+  ([n, name_id, name_en, primary_muscle, secondary_muscles, equipment, type, default_rest_sec, category]) => ({
     id: builtinUuid("e", n),
+    category: category ?? "strength",
     owner_id: null,
     name_id,
     name_en,

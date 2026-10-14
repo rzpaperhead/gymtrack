@@ -45,7 +45,7 @@ function Payments() {
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ["admin-payments"], queryFn: listConfirmations });
   const [open, setOpen] = useState<PaymentConfirmation | null>(null);
-  const [days, setDays] = useState<string>(String(MANUAL_PRICING.premiumDays));
+  const [days, setDays] = useState<string>(MANUAL_PRICING.premiumDays == null ? "permanent" : String(MANUAL_PRICING.premiumDays));
   const img = useQuery({ queryKey: ["proof", open?.proof_path], queryFn: () => proofUrl(open!.proof_path), enabled: !!open });
   const review = useMutation({
     mutationFn: ({ id, approve }: { id: string; approve: boolean }) => reviewPayment(id, approve, days === "permanent" ? null : Number(days)),

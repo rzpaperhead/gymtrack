@@ -87,8 +87,13 @@ export interface Profile {
   updated_at: string;
 }
 
+export const EXERCISE_CATEGORIES = ["strength", "warmup", "cooldown"] as const;
+export type ExerciseCategory = (typeof EXERCISE_CATEGORIES)[number];
+
 export interface Exercise {
   id: string;
+  /** strength (default) · warmup = dynamic warm-up · cooldown = static stretch */
+  category?: ExerciseCategory;
   owner_id: string | null; // null = built-in
   name_id: string;
   name_en: string;

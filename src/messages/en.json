@@ -90,7 +90,12 @@
     "notConfirmed": "Your email isn't confirmed yet. Check your inbox (or spam) and click the confirmation link.",
     "confirmSentTitle": "Check your email",
     "confirmSentBody": "We sent a confirmation link to {email}. Click it, then sign in with your email and password.",
-    "backToSignIn": "Back to sign in"
+    "backToSignIn": "Back to sign in",
+    "tryGuest": "Try it without an account",
+    "guestWillMove": "You're in guest mode. Sign up or sign in and all your workouts move to your account.",
+    "guestBanner": "Guest mode — sign up to save your progress to an account",
+    "guestLabel": "Guest mode (data on this phone)",
+    "saveProgress": "Sign up to save progress"
   },
   "onboarding": {
     "step": "Step {current} of {total}",
@@ -193,7 +198,9 @@
     "saved": "Saved on device",
     "colTime": "sec",
     "colDistance": "m",
-    "screenOn": "Screen stays on during your workout"
+    "screenOn": "Screen stays on during your workout",
+    "addWarmup": "Warm-up",
+    "addCooldown": "Cool-down"
   },
   "setTypes": {
     "warmup": "Warm-up",
@@ -524,7 +531,10 @@
     "redeemOk": "Code applied! Premium is active.",
     "redeem_invalid": "Invalid or inactive code.",
     "redeem_used_up": "This code has been fully used.",
-    "redeem_already": "You've already used this code."
+    "redeem_already": "You've already used this code.",
+    "oneTime": "one-time payment, Premium forever",
+    "uniqueNote": "The last Rp{code} is a unique code so your transfer is easy to identify.",
+    "signUpFirst": "Create an account first to get Premium. Your workouts come with you."
   },
   "legal": {
     "privacyTitle": "Privacy Policy",
@@ -553,7 +563,9 @@
     "forearms": "Forearms",
     "legs": "Legs",
     "core": "Core",
-    "cardio": "Cardio"
+    "cardio": "Cardio",
+    "warmup": "Warm-up",
+    "cooldown": "Cool-down"
   },
   "admin": {
     "title": "Admin",
@@ -589,6 +601,38 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
+    }
+  },
+  "coach": {
+    "title": "PT Assistant",
+    "label": "PT tip",
+    "apply": "Apply",
+    "teaser": "Weight suggestions from the PT Assistant are a Premium feature",
+    "pitch": "Get per-exercise weight targets, stalled-lift alerts and muscle balance checks — like having a personal trainer.",
+    "unlock": "Unlock PT Assistant",
+    "empty": "Your training looks balanced. Keep it up!",
+    "next": {
+      "increase": "Go up to {weight} × {reps}. You hit the top of the range on every set!",
+      "more_reps": "Stay at {weight}, chase {reps} reps.",
+      "repeat": "Repeat {weight}, aim for at least {reps} reps per set.",
+      "deload": "Drop to {weight} × {reps} to rebuild momentum."
+    },
+    "group": {
+      "legs": "legs",
+      "back": "back",
+      "chest": "chest",
+      "shoulders": "shoulders",
+      "arms": "arms"
+    },
+    "insight": {
+      "weekOnTrack": "Weekly target reached ({count}/{target}). Nice!",
+      "weekBehind": "{left} more sessions to hit this week's target, {daysLeft} days left.",
+      "restDay": "You've trained {streakDays} days in a row. Take a rest day so your muscles recover.",
+      "neglected": "You haven't trained {group} for {days} days. Fit it into your next session.",
+      "neglectedNever": "You haven't trained {group} yet. Add it for a balanced physique.",
+      "pushPullImbalance": "Pushing volume is {ratio}× your pulling. Add rows/pull-ups for shoulder health.",
+      "stalled": "{exercise} hasn't improved in the last {sessions} sessions. Try a 10% deload or a new rep range.",
+      "progressing": "{exercise} is up +{gainKg} kg estimated 1RM. Keep going!"
     }
   }
 }

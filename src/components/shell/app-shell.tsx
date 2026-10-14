@@ -37,7 +37,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const t = useTranslations();
   const online = useOnline();
-  const { mode } = useAuth();
+  const { mode, guest } = useAuth();
   const inSession = pathname.startsWith("/workout/active");
 
   if (!ok) {
@@ -57,6 +57,11 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div role="status" className="pt-safe bg-secondary px-4 py-1.5 text-center text-xs text-secondary-foreground">
           {t("common.offline")}
         </div>
+      )}
+      {guest && online && (
+        <Link href="/login" className="pt-safe block bg-accent px-4 py-1.5 text-center text-xs font-semibold text-accent-foreground underline-offset-2 hover:underline">
+          {t("auth.guestBanner")}
+        </Link>
       )}
       {mode === "demo" && online && (
         <div role="note" className="pt-safe bg-accent px-4 py-1 text-center text-xs text-accent-foreground">

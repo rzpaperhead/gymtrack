@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Field } from "@/components/common";
 import { LanguageSwitch } from "@/components/language-switch";
-import { startDemo, useAuth } from "@/components/providers/auth-provider";
+import { startDemo, startGuest, useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSupabase } from "@/lib/supabase/client";
@@ -25,12 +25,12 @@ function redirectTo() {
 
 export function LoginForm() {
   const t = useTranslations("auth");
-  const { status, mode } = useAuth();
+  const { status, mode, guest } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "signed_in") router.replace("/home");
-  }, [status, router]);
+    if (status === "signed_in" && !guest) router.replace("/home");
+  }, [status, guest, router]);
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-10">
@@ -66,6 +66,19 @@ export function LoginForm() {
             </>
           )}
           <PasswordForm />
+          {!guest && (
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                startGuest();
+                router.push("/home");
+              }}
+            >
+              {t("tryGuest")}
+            </Button>
+          )}
+          {guest && <p className="text-center text-sm text-muted-foreground">{t("guestWillMove")}</p>}
         </>
       )}
     </main>

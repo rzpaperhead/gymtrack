@@ -26,6 +26,7 @@ import { formatClock, useActiveWorkout, useNow } from "@/lib/hooks";
 import { deleteWorkout, finishWorkout, hasValues, updateWorkout } from "@/lib/workout/actions";
 import { stopRest } from "@/lib/workout/rest-timer";
 import { useWakeLock } from "@/lib/workout/wake-lock";
+import { ensurePushSubscription } from "@/lib/push";
 
 export default function ActiveWorkoutPage() {
   const t = useTranslations();
@@ -47,7 +48,11 @@ export default function ActiveWorkoutPage() {
   // Ask for notification permission once a session starts (used by the rest timer).
   useEffect(() => {
     if (workout && typeof Notification !== "undefined" && Notification.permission === "default") {
-      void Notification.requestPermission().catch(() => {});
+      void Notification.requestPermission()
+        .then((p) => p === "granted" && ensurePushSubscription())
+        .catch(() => {});
+    } else if (workout && typeof Notification !== "undefined" && Notification.permission === "granted") {
+      void ensurePushSubscription();
     }
   }, [workout]);
 

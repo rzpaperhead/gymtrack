@@ -13,7 +13,7 @@ import { useAuth } from "@/components/providers/auth-provider";
  */
 export default function AuthCallbackPage() {
   const t = useTranslations("auth");
-  const { status } = useAuth();
+  const { status, guest } = useAuth();
   const router = useRouter();
   const [failed, setFailed] = useState(false);
 
@@ -24,12 +24,12 @@ export default function AuthCallbackPage() {
   }, []);
 
   useEffect(() => {
-    if (status === "signed_in") router.replace("/home");
+    if (status === "signed_in" && !guest) router.replace("/home");
     if (status !== "signed_out") return;
     // Give the code exchange a moment before declaring failure.
     const id = setTimeout(() => setFailed(true), 6000);
     return () => clearTimeout(id);
-  }, [status, router]);
+  }, [status, guest, router]);
 
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center gap-4 p-6 text-center">

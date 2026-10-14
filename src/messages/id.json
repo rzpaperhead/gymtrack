@@ -90,7 +90,12 @@
     "notConfirmed": "Email belum dikonfirmasi. Cek kotak masuk (atau folder spam) dan klik link konfirmasinya.",
     "confirmSentTitle": "Cek email kamu",
     "confirmSentBody": "Kami mengirim link konfirmasi ke {email}. Klik link itu, lalu masuk dengan email dan password.",
-    "backToSignIn": "Kembali ke halaman masuk"
+    "backToSignIn": "Kembali ke halaman masuk",
+    "tryGuest": "Coba dulu tanpa daftar",
+    "guestWillMove": "Kamu sedang mode tamu. Setelah daftar atau masuk, semua latihanmu otomatis pindah ke akun.",
+    "guestBanner": "Mode tamu — daftar agar progresmu tersimpan di akun",
+    "guestLabel": "Mode tamu (data di HP ini)",
+    "saveProgress": "Daftar untuk simpan progres"
   },
   "onboarding": {
     "step": "Langkah {current} dari {total}",
@@ -193,7 +198,9 @@
     "saved": "Tersimpan di perangkat",
     "colTime": "dtk",
     "colDistance": "m",
-    "screenOn": "Layar tetap menyala selama latihan"
+    "screenOn": "Layar tetap menyala selama latihan",
+    "addWarmup": "Pemanasan",
+    "addCooldown": "Pendinginan"
   },
   "setTypes": {
     "warmup": "Warm-up",
@@ -524,7 +531,10 @@
     "redeemOk": "Kode berhasil! Premium sudah aktif.",
     "redeem_invalid": "Kode tidak valid atau sudah tidak aktif.",
     "redeem_used_up": "Kode ini sudah habis dipakai.",
-    "redeem_already": "Kamu sudah pernah memakai kode ini."
+    "redeem_already": "Kamu sudah pernah memakai kode ini.",
+    "oneTime": "sekali bayar, Premium selamanya",
+    "uniqueNote": "Rp{code} di akhir nominal adalah kode unik agar transfermu mudah dikenali.",
+    "signUpFirst": "Buat akun dulu untuk berlangganan Premium. Data latihanmu tetap ikut."
   },
   "legal": {
     "privacyTitle": "Kebijakan Privasi",
@@ -553,7 +563,9 @@
     "forearms": "Lengan bawah",
     "legs": "Kaki",
     "core": "Perut",
-    "cardio": "Kardio"
+    "cardio": "Kardio",
+    "warmup": "Pemanasan",
+    "cooldown": "Pendinginan"
   },
   "admin": {
     "title": "Admin",
@@ -589,6 +601,38 @@
       "pending": "Menunggu",
       "approved": "Diterima",
       "rejected": "Ditolak"
+    }
+  },
+  "coach": {
+    "title": "Asisten PT",
+    "label": "Saran PT",
+    "apply": "Terapkan",
+    "teaser": "Saran beban dari Asisten PT tersedia di Premium",
+    "pitch": "Dapatkan saran beban per gerakan, deteksi progres yang mandek, dan keseimbangan otot — seperti punya personal trainer.",
+    "unlock": "Buka Asisten PT",
+    "empty": "Latihan kamu sudah seimbang. Pertahankan!",
+    "next": {
+      "increase": "Naikkan ke {weight} × {reps}. Semua set kemarin mencapai target!",
+      "more_reps": "Tetap {weight}, kejar {reps} reps.",
+      "repeat": "Ulangi {weight}, targetkan minimal {reps} reps tiap set.",
+      "deload": "Turunkan ke {weight} × {reps} untuk membangun ulang momentum."
+    },
+    "group": {
+      "legs": "kaki",
+      "back": "punggung",
+      "chest": "dada",
+      "shoulders": "bahu",
+      "arms": "lengan"
+    },
+    "insight": {
+      "weekOnTrack": "Target minggu ini tercapai ({count}/{target}). Mantap!",
+      "weekBehind": "Masih kurang {left} sesi untuk target minggu ini, sisa {daysLeft} hari.",
+      "restDay": "Kamu sudah latihan {streakDays} hari berturut-turut. Ambil 1 hari istirahat agar otot pulih.",
+      "neglected": "Otot {group} belum dilatih {days} hari. Selipkan di sesi berikutnya.",
+      "neglectedNever": "Otot {group} belum pernah dilatih. Tambahkan agar tubuh seimbang.",
+      "pushPullImbalance": "Volume dorong {ratio}× lebih banyak dari tarik. Tambah gerakan row/pull-up untuk kesehatan bahu.",
+      "stalled": "{exercise} belum naik dalam {sessions} sesi terakhir. Coba deload 10% atau ubah rentang reps.",
+      "progressing": "{exercise} naik +{gainKg} kg estimasi 1RM. Terus lanjutkan!"
     }
   }
 }

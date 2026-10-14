@@ -2,6 +2,8 @@ import type { Exercise, Muscle } from "@/lib/types";
 
 /** How the exercise list is grouped for browsing (by primary muscle). */
 export const MUSCLE_GROUPS = [
+  { key: "warmup", parts: [{ key: "warmup", muscles: [] }] },
+  { key: "cooldown", parts: [{ key: "cooldown", muscles: [] }] },
   { key: "chest", parts: [{ key: "chest", muscles: ["chest"] }] },
   { key: "back", parts: [{ key: "back", muscles: ["back", "lats", "traps", "lower_back"] }] },
   { key: "shoulders", parts: [{ key: "shoulders", muscles: ["shoulders"] }] },
@@ -28,13 +30,19 @@ export interface GroupedSection {
   items: Exercise[];
 }
 
+/** warmup/cooldown groups are by category; the rest by primary muscle (strength only). */
+const categoryGroup = (k: string) => (k === "warmup" || k === "cooldown" ? k : null);
+
 /** Split an (already filtered & sorted) list into group → part sections, skipping empty ones. */
 export function groupExercises(list: Exercise[], only?: GroupKey | ""): GroupedSection[] {
   const out: GroupedSection[] = [];
   for (const g of MUSCLE_GROUPS) {
     if (only && g.key !== only) continue;
     for (const p of g.parts) {
-      const items = list.filter((e) => (p.muscles as readonly Muscle[]).includes(e.primary_muscle));
+      const cat = categoryGroup(g.key);
+      const items = list.filter((e) =>
+        cat ? (e.category ?? "strength") === cat : (e.category ?? "strength") === "strength" && (p.muscles as readonly Muscle[]).includes(e.primary_muscle),
+      );
       if (items.length) out.push({ group: g.key, part: p.key, isSub: g.parts.length > 1, items });
     }
   }

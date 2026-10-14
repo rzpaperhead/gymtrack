@@ -24,6 +24,7 @@ export async function saveCustomExercise(input: CustomExerciseInput, id?: string
   const row: Exercise = {
     id: id ?? newId(),
     owner_id: requireUserId(),
+    category: "strength",
     name_id: data.name,
     name_en: data.name,
     primary_muscle: data.primary_muscle,
