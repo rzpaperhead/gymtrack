@@ -839,6 +839,12 @@
     "rename": "Ganti nama grup",
     "owner": "Pembuat",
     "noMoreFriends": "Semua temanmu sudah ada di grup.",
-    "addMembers": "Tambah anggota"
+    "addMembers": "Tambah anggota",
+    "status": {
+      "pending": "Mengirim",
+      "sent": "Terkirim",
+      "delivered": "Diterima",
+      "read": "Dibaca"
+    }
   }
 }

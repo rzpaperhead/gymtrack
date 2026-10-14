@@ -446,3 +446,26 @@ describe("activity feed and chat", () => {
     expect(await as(B, () => rows(`select * from public.messages where conversation_id = '${cid}'`))).toHaveLength(0);
   });
 });
+
+describe("message receipts", () => {
+  const one = async (uid: string, sql: string) => (await as(uid, () => rows(sql)))[0];
+  it("delivered then read watermarks move as the recipient's app syncs and opens the chat", async () => {
+    const { cid } = await one(A, `select public.get_or_create_direct('${B}') as cid`);
+    await new Promise((r) => setTimeout(r, 20));
+    const { at } = await one(A, `insert into public.messages (conversation_id, body) values ('${cid}', 'cek centang') returning created_at as at`);
+    const before = await one(A, `select last_delivered_at, last_read_at from public.conversation_receipts('${cid}')`);
+    expect(new Date(before.last_delivered_at as string) < new Date(at as string)).toBe(true); // ✓ only
+
+    await as(B, () => db.exec(`select public.mark_all_delivered()`));
+    const delivered = await one(A, `select last_delivered_at, last_read_at from public.conversation_receipts('${cid}')`);
+    expect(new Date(delivered.last_delivered_at as string) >= new Date(at as string)).toBe(true); // ✓✓
+    expect(new Date(delivered.last_read_at as string) < new Date(at as string)).toBe(true);
+
+    await as(B, () => db.exec(`select public.mark_conversation_read('${cid}')`));
+    const read = await one(A, `select last_read_at from public.conversation_receipts('${cid}')`);
+    expect(new Date(read.last_read_at as string) >= new Date(at as string)).toBe(true); // blue ✓✓
+
+    // Outsiders can't read receipts.
+    expect(await as(ADMIN, () => rows(`select * from public.conversation_receipts('${cid}')`))).toHaveLength(0);
+  });
+});

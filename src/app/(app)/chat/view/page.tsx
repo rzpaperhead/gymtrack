@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { LogOut, Pencil, SendHorizontal, UserPlus, Users } from "lucide-react";
+import { Check, CheckCheck, Clock3, LogOut, Pencil, SendHorizontal, UserPlus, Users } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
@@ -20,10 +20,13 @@ import {
   markRead,
   members as loadMembers,
   renameGroup,
+  loadReceipts,
   sendMessage,
   subscribeMessages,
+  subscribeReceipts,
   type Message,
 } from "@/lib/data/chat";
+import { messageStatus, type MessageStatus } from "@/lib/chat-status";
 import { listFriends } from "@/lib/data/friends";
 import { useInbox } from "@/lib/chat-hooks";
 import { useOnline } from "@/lib/hooks";
@@ -41,7 +44,9 @@ function Thread() {
   const inbox = useInbox();
   const conv = inbox.data?.find((c) => c.id === id);
   const memberList = useQuery({ queryKey: ["chat-members", id], queryFn: () => loadMembers(id), enabled: !!id && online });
-  const [messages, setMessages] = useState<Message[]>([]);
+  // `pending` = optimistic, not yet accepted by the server (🕓).
+  const [messages, setMessages] = useState<(Message & { pending?: boolean })[]>([]);
+  const receipts = useQuery({ queryKey: ["receipts", id], queryFn: () => loadReceipts(id), enabled: !!id && online });
   const [loaded, setLoaded] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [text, setText] = useState("");
@@ -78,22 +83,47 @@ function Thread() {
     };
   }, [id, online, qc]);
 
+  useEffect(() => {
+    if (!id || !online) return;
+    let off: (() => void) | undefined;
+    let cancelled = false;
+    void subscribeReceipts(id, () => void qc.invalidateQueries({ queryKey: ["receipts", id] })).then((fn) => {
+      if (cancelled) fn();
+      else off = fn;
+    });
+    return () => {
+      cancelled = true;
+      off?.();
+    };
+  }, [id, online, qc]);
+
   useLayoutEffect(() => {
     if (stickToBottom.current) bottom.current?.scrollIntoView({ block: "end" });
   }, [messages.length]);
 
   const send = useMutation({
-    mutationFn: (body: string) => sendMessage(id, body),
-    onSuccess: (m) => setMessages((cur) => (cur.some((x) => x.id === m.id) ? cur : [...cur, m])),
-    onError: () => toast.error(t("sendFailed")),
+    mutationFn: ({ body }: { body: string; tempId: string }) => sendMessage(id, body),
+    onSuccess: (m, { tempId }) =>
+      // Swap the optimistic bubble for the server row (realtime may have added it already).
+      setMessages((cur) => {
+        const withoutTemp = cur.filter((x) => x.id !== tempId);
+        return withoutTemp.some((x) => x.id === m.id) ? withoutTemp : [...withoutTemp, m];
+      }),
+    onError: (_e, { body, tempId }) => {
+      setMessages((cur) => cur.filter((x) => x.id !== tempId));
+      setText((cur) => cur || body);
+      toast.error(t("sendFailed"));
+    },
   });
 
   const submit = () => {
     const body = text.trim();
-    if (!body || send.isPending) return;
+    if (!body || !userId) return;
     stickToBottom.current = true;
     setText("");
-    send.mutate(body);
+    const tempId = `tmp-${crypto.randomUUID()}`;
+    setMessages((cur) => [...cur, { id: tempId, conversation_id: id, sender_id: userId, body, created_at: new Date().toISOString(), pending: true }]);
+    send.mutate({ body, tempId });
   };
 
   const older = async () => {
@@ -139,9 +169,10 @@ function Thread() {
               <div className={cn("max-w-[78%] rounded-2xl px-3 py-2", mine ? "rounded-br-md bg-primary text-primary-foreground" : "rounded-bl-md bg-card border")}>
                 {!mine && isGroup && firstOfRun && <p className="text-xs font-semibold text-chart-2">{nameOf(m.sender_id)}</p>}
                 <p className="text-[0.95rem] break-words whitespace-pre-wrap">{m.body}</p>
-                <time className={cn("block text-right text-[0.65rem]", mine ? "text-primary-foreground/70" : "text-muted-foreground")} dateTime={m.created_at}>
-                  {f.dateTime(new Date(m.created_at), { hour: "2-digit", minute: "2-digit" })}
-                </time>
+                <span className={cn("flex items-center justify-end gap-1 text-[0.65rem]", mine ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                  <time dateTime={m.created_at}>{f.dateTime(new Date(m.created_at), { hour: "2-digit", minute: "2-digit" })}</time>
+                  {mine && <Ticks status={messageStatus(m.created_at, receipts.data, m.pending)} />}
+                </span>
               </div>
             </div>
           );
@@ -171,7 +202,7 @@ function Thread() {
           }}
           className="max-h-32 min-h-11 flex-1 resize-none"
         />
-        <Button type="submit" size="icon" aria-label={t("send")} disabled={!text.trim() || send.isPending}>
+        <Button type="submit" size="icon" aria-label={t("send")} disabled={!text.trim()}>
           <SendHorizontal />
         </Button>
       </form>
@@ -203,6 +234,22 @@ function Thread() {
       />
       <span className="sr-only">{tc("loading")}</span>
     </div>
+  );
+}
+
+/** ✓ sent · ✓✓ delivered · blue ✓✓ read · 🕓 sending. Labelled for screen readers. */
+function Ticks({ status }: { status: MessageStatus }) {
+  const t = useTranslations("chat.status");
+  const label = t(status);
+  if (status === "pending") return <Clock3 className="size-3.5" aria-label={label} role="img" />;
+  if (status === "sent") return <Check className="size-4" aria-label={label} role="img" />;
+  return (
+    <CheckCheck
+      className={cn("size-4", status === "read" && "rounded-sm bg-sky-950/80 text-sky-400")}
+      strokeWidth={status === "read" ? 3 : 2}
+      aria-label={label}
+      role="img"
+    />
   );
 }
 

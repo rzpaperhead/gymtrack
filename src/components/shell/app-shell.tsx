@@ -9,6 +9,7 @@ import { useEffect, type ReactNode } from "react";
 import { toast } from "sonner";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { useBadgeWatcher } from "@/components/achievements";
+import { useDeliveryReceipts } from "@/lib/chat-hooks";
 import { ActiveWorkoutBar } from "@/components/shell/active-workout-bar";
 import { RestTimerBar } from "@/components/shell/rest-timer-bar";
 import { db } from "@/lib/db/local";
@@ -58,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const ok = useGate();
   usePremiumArrival();
   useBadgeWatcher();
+  useDeliveryReceipts();
   const pathname = usePathname();
   const t = useTranslations();
   const online = useOnline();

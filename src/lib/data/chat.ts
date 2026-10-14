@@ -101,7 +101,7 @@ export async function markRead(conversationId: string) {
 export async function subscribeMessages(conversationId: string, onMessage: (m: Message) => void): Promise<() => void> {
   const sb = await getSupabase();
   const channel = sb
-    .channel(`messages:${conversationId}`)
+    .channel(`messages:${conversationId}:${crypto.randomUUID()}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` }, (p) =>
       onMessage(p.new as Message),
     )
@@ -113,8 +113,35 @@ export async function subscribeMessages(conversationId: string, onMessage: (m: M
 export async function subscribeInbox(onChange: () => void): Promise<() => void> {
   const sb = await getSupabase();
   const channel = sb
-    .channel("inbox")
+    .channel(`inbox:${crypto.randomUUID()}`)
     .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, () => onChange())
+    .subscribe();
+  return () => void sb.removeChannel(channel);
+}
+
+// --- receipts ---------------------------------------------------------------
+
+/** Everything up to now reached this device (✓✓ for senders). Best-effort. */
+export async function markAllDelivered() {
+  try {
+    await (await getSupabase()).rpc("mark_all_delivered");
+  } catch {}
+}
+
+export async function loadReceipts(conversationId: string) {
+  const { data, error } = await (await getSupabase()).rpc("conversation_receipts", { p_conv: conversationId });
+  if (error) throw error;
+  return data as import("@/lib/chat-status").Receipt[];
+}
+
+/** Fires when another member's delivered/read watermark moves. */
+export async function subscribeReceipts(conversationId: string, onChange: () => void): Promise<() => void> {
+  const sb = await getSupabase();
+  const channel = sb
+    .channel(`receipts:${conversationId}:${crypto.randomUUID()}`)
+    .on("postgres_changes", { event: "UPDATE", schema: "public", table: "conversation_members", filter: `conversation_id=eq.${conversationId}` }, () =>
+      onChange(),
+    )
     .subscribe();
   return () => void sb.removeChannel(channel);
 }

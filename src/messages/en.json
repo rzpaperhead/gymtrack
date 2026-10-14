@@ -839,6 +839,12 @@
     "rename": "Rename group",
     "owner": "Creator",
     "noMoreFriends": "All your friends are already in the group.",
-    "addMembers": "Add members"
+    "addMembers": "Add members",
+    "status": {
+      "pending": "Sending",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read"
+    }
   }
 }
