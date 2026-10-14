@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import Link from "next/link";
 import { Avatar } from "@/components/avatar";
 import { CoachCard } from "@/components/coach-card";
+import { RecoveryMap } from "@/components/recovery-map";
 import { ChatButton } from "@/components/social/chat-button";
 import { Card, EmptyState, LinkButton, Section } from "@/components/common";
 import { useProfile } from "@/components/providers/auth-provider";
@@ -129,6 +130,8 @@ export default function HomePage() {
       )}
 
       {history && history.rows.length > 0 && <CoachCard history={history} weeklyTarget={profile?.weekly_target ?? 3} />}
+
+      {history && history.rows.length > 0 && <RecoveryMap history={history} catalog={catalog} />}
 
       <Section
         title={t("home.recent")}

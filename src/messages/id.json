@@ -848,5 +848,20 @@
       "delivered": "Diterima",
       "read": "Dibaca"
     }
+  },
+  "recovery": {
+    "title": "Pemulihan otot",
+    "front": "Depan",
+    "back": "Belakang",
+    "fresh": "Siap",
+    "recovering": "Pemulihan",
+    "fatigued": "Masih lelah",
+    "readyTitle": "Siap dilatih hari ini",
+    "restingTitle": "Masih pemulihan",
+    "readyIn": "siap ±{hours} jam lagi",
+    "neglected": "7+ hari belum dilatih",
+    "never": "belum pernah",
+    "hint": "Perkiraan dari jumlah set 7 hari terakhir. Otot besar butuh ±72 jam, otot kecil ±48 jam. Dengarkan tubuhmu juga.",
+    "aria": "Peta pemulihan otot. Siap: {ready}. Masih pemulihan: {resting}."
   }
 }

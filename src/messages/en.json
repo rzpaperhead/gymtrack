@@ -848,5 +848,20 @@
       "delivered": "Delivered",
       "read": "Read"
     }
+  },
+  "recovery": {
+    "title": "Muscle recovery",
+    "front": "Front",
+    "back": "Back",
+    "fresh": "Ready",
+    "recovering": "Recovering",
+    "fatigued": "Fatigued",
+    "readyTitle": "Ready to train today",
+    "restingTitle": "Still recovering",
+    "readyIn": "ready in ~{hours} h",
+    "neglected": "not trained 7+ days",
+    "never": "never trained",
+    "hint": "Estimated from your sets over the last 7 days. Big muscles need ~72 h, small ones ~48 h. Listen to your body too.",
+    "aria": "Muscle recovery map. Ready: {ready}. Recovering: {resting}."
   }
 }
