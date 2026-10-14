@@ -47,8 +47,28 @@ export async function sendPush(db: SupabaseClient, messages: Map<string, PushMes
   return sent;
 }
 
-/** Transactional email via Brevo. No-op when not configured. */
+/**
+ * Transactional email. Uses SMTP (e.g. Gmail with an app password) when
+ * SMTP_USER/SMTP_PASS are set, otherwise the Brevo API; no-op if neither.
+ */
 export async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+  if (user && pass) {
+    try {
+      const { createTransport } = await import("nodemailer");
+      const transport = createTransport({
+        host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+        port: Number(process.env.SMTP_PORT ?? 465),
+        secure: Number(process.env.SMTP_PORT ?? 465) === 465,
+        auth: { user, pass: pass.replace(/\s+/g, "") },
+      });
+      await transport.sendMail({ from: `"GymTrack" <${user}>`, to, subject, html });
+      return true;
+    } catch {
+      return false;
+    }
+  }
   const apiKey = process.env.BREVO_API_KEY;
   if (!apiKey) return false;
   const sender = process.env.BREVO_SENDER_EMAIL ?? process.env.ADMIN_NOTIFY_EMAIL ?? "rzpaperhead@gmail.com";
@@ -59,6 +79,8 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   });
   return res.ok;
 }
+
+export const emailConfigured = () => !!((process.env.SMTP_USER && process.env.SMTP_PASS) || process.env.BREVO_API_KEY);
 
 export const escapeHtml = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
