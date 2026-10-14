@@ -113,6 +113,7 @@ function PasswordForm() {
   const [signUp, setSignUp] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [sentTo, setSentTo] = useState<string | null>(null);
+  const [forgot, setForgot] = useState(false);
   const form = useForm<z.infer<typeof passwordSchema>>({ resolver: zodResolver(passwordSchema), defaultValues: { email: "", password: "" } });
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
@@ -130,6 +131,8 @@ function PasswordForm() {
       if (error) setMessage(error.code === "email_not_confirmed" ? t("notConfirmed") : t("invalidCredentials"));
     }
   });
+
+  if (forgot) return <ForgotPassword initialEmail={form.getValues("email")} onBack={() => setForgot(false)} />;
 
   if (sentTo) {
     return (
@@ -165,6 +168,13 @@ function PasswordForm() {
           aria-invalid={!!form.formState.errors.password}
         />
       </Field>
+      {!signUp && (
+        <div className="-mt-2 text-right">
+          <button type="button" className="min-h-11 text-sm font-semibold text-primary underline-offset-4 hover:underline" onClick={() => setForgot(true)}>
+            {t("forgotPassword")}
+          </button>
+        </div>
+      )}
       {message && (
         <p role="alert" className="text-sm text-muted-foreground">
           {message}
@@ -179,6 +189,66 @@ function PasswordForm() {
           {signUp ? t("signIn") : t("signUp")}
         </button>
       </p>
+    </form>
+  );
+}
+
+/** Send a reset link; the link opens /auth/reset where a new password is set. */
+function ForgotPassword({ initialEmail, onBack }: { initialEmail: string; onBack: () => void }) {
+  const t = useTranslations("auth");
+  const [email, setEmail] = useState(initialEmail);
+  const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const valid = z.email().safeParse(email.trim()).success;
+
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!valid) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await (await getSupabase()).auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/auth/reset`,
+    });
+    setBusy(false);
+    // Don't reveal whether the email has an account; only surface rate limits etc.
+    if (error && error.status === 429) return setError(t("tooManyRequests"));
+    setSent(true);
+  };
+
+  if (sent) {
+    return (
+      <div role="status" className="space-y-4 rounded-2xl border bg-card p-5 text-center">
+        <MailCheck className="mx-auto size-10 text-primary" aria-hidden />
+        <p className="text-lg font-bold">{t("resetSentTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("resetSentBody", { email: email.trim() })}</p>
+        <button type="button" className="min-h-11 font-semibold text-primary" onClick={onBack}>
+          {t("backToSignIn")}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={send} className="space-y-4" noValidate>
+      <div>
+        <p className="text-lg font-bold">{t("forgotTitle")}</p>
+        <p className="text-sm text-muted-foreground">{t("forgotBody")}</p>
+      </div>
+      <Field label={t("email")} htmlFor="reset-email">
+        <Input id="reset-email" type="email" autoComplete="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+      </Field>
+      {error && (
+        <p role="alert" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+      <Button type="submit" size="xl" className="w-full" disabled={!valid || busy}>
+        {t("sendResetLink")}
+      </Button>
+      <button type="button" className="min-h-11 w-full text-sm font-semibold text-muted-foreground" onClick={onBack}>
+        {t("backToSignIn")}
+      </button>
     </form>
   );
 }

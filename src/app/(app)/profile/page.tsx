@@ -2,13 +2,14 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Bell, Camera, ChevronRight, ShieldCheck, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
+import { Bell, Camera, ChevronRight, KeyRound, ShieldCheck, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
+import { NewPasswordForm } from "@/components/auth/new-password-form";
 import { ReminderSettings } from "@/components/reminder-settings";
 import { Card, ConfirmDialog, Field, NativeSelect, PageHeader, Section, Segmented } from "@/components/common";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
@@ -43,6 +44,7 @@ export default function ProfilePage() {
   const [name, setName] = useState("");
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const [deleteText, setDeleteText] = useState("");
   const [notif, setNotif] = useState<NotificationPermission | "unsupported">("default");
 
@@ -251,6 +253,11 @@ export default function ProfilePage() {
           >
             <Download aria-hidden /> {t("profile.exportData")} {!ent.csvExport && <Crown className="size-4 text-primary" aria-label={t("common.premium")} />}
           </Button>
+          {mode === "supabase" && !guest && (
+            <Button variant="secondary" className="w-full" onClick={() => setPwOpen(true)}>
+              <KeyRound aria-hidden /> {t("auth.changePassword")}
+            </Button>
+          )}
           <Button variant="outline" className="w-full" onClick={() => (sync.pending ? setConfirmSignOut(true) : signOut().then(() => router.replace("/")))}>
             <LogOut aria-hidden /> {t("auth.signOut")}
           </Button>
@@ -285,6 +292,19 @@ export default function ProfilePage() {
           router.replace("/");
         }}
       />
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
+        <DialogContent closeLabel={t("common.close")}>
+          <DialogHeader>
+            <DialogTitle>{t("auth.changePassword")}</DialogTitle>
+          </DialogHeader>
+          <NewPasswordForm
+            onDone={() => {
+              setPwOpen(false);
+              toast.success(t("auth.passwordChanged"));
+            }}
+          />
+        </DialogContent>
+      </Dialog>
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent closeLabel={t("common.close")}>
           <DialogHeader>
