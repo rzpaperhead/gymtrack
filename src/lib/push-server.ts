@@ -24,26 +24,34 @@ export function pushConfigured(): boolean {
 
 /** Send to every device of the given users; prunes expired subscriptions. */
 export async function sendPush(db: SupabaseClient, messages: Map<string, PushMessage>): Promise<number> {
-  if (!pushConfigured() || !messages.size) return 0;
-  const { data: subs } = await db.from("push_subscriptions").select("*").in("user_id", [...messages.keys()]);
+  return sendPushList(db, [...messages].map(([user_id, message]) => ({ user_id, message })));
+}
+
+/** Like sendPush, but several messages per user are allowed. */
+export async function sendPushList(db: SupabaseClient, items: { user_id: string; message: PushMessage }[]): Promise<number> {
+  if (!pushConfigured() || !items.length) return 0;
+  const { data: subs } = await db.from("push_subscriptions").select("*").in("user_id", [...new Set(items.map((i) => i.user_id))]);
   let sent = 0;
-  const dead: string[] = [];
+  const dead = new Set<string>();
   await Promise.all(
-    (subs ?? []).map(async (s) => {
-      const m = messages.get(s.user_id)!;
-      try {
-        await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(m), {
-          TTL: 3600,
-          urgency: "high",
-        });
-        sent++;
-      } catch (e) {
-        const code = (e as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) dead.push(s.endpoint);
-      }
-    }),
+    items.flatMap(({ user_id, message }) =>
+      (subs ?? [])
+        .filter((s) => s.user_id === user_id)
+        .map(async (s) => {
+          try {
+            await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify(message), {
+              TTL: 3600,
+              urgency: "high",
+            });
+            sent++;
+          } catch (e) {
+            const code = (e as { statusCode?: number }).statusCode;
+            if (code === 404 || code === 410) dead.add(s.endpoint);
+          }
+        }),
+    ),
   );
-  if (dead.length) await db.from("push_subscriptions").delete().in("endpoint", dead);
+  if (dead.size) await db.from("push_subscriptions").delete().in("endpoint", [...dead]);
   return sent;
 }
 

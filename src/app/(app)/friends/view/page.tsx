@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { EyeOff, Flame, Trophy, UserMinus } from "lucide-react";
+import { Ban, EyeOff, Flame, Trophy, UserMinus } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { exerciseName, useExerciseCatalog } from "@/lib/catalog";
 import { weeklyConsistency, workoutsPerDay } from "@/lib/calc/stats";
 import { kgToUnit } from "@/lib/calc/units";
-import { friendProgress, listFriends, removeFriend } from "@/lib/data/friends";
+import { blockUser, friendProgress, giveKudos, KUDOS, listFriends, removeFriend, type Kudos } from "@/lib/data/friends";
 import { formatClock, useUnit } from "@/lib/hooks";
 
 function FriendView() {
@@ -25,6 +25,18 @@ function FriendView() {
   const qc = useQueryClient();
   const catalog = useExerciseCatalog();
   const [confirm, setConfirm] = useState(false);
+  const [confirmBlock, setConfirmBlock] = useState(false);
+  const kudos = useMutation({
+    mutationFn: ({ workoutId, emoji }: { workoutId: string; emoji: Kudos }) => giveKudos(workoutId, emoji),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["friend-progress", id] }),
+  });
+  const block = useMutation({
+    mutationFn: () => blockUser(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["friends"] });
+      router.replace("/friends");
+    },
+  });
   const friends = useQuery({ queryKey: ["friends"], queryFn: listFriends });
   const progress = useQuery({ queryKey: ["friend-progress", id], queryFn: () => friendProgress(id), enabled: !!id });
   const row = friends.data?.find((x) => x.friend_id === id && x.status === "accepted");
@@ -80,6 +92,11 @@ function FriendView() {
             </Card>
           </Section>
 
+          {(p.share_streak === false || p.share_workouts === false || p.share_lifts === false) && (
+            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+              <EyeOff className="size-3.5" aria-hidden /> {t("social.partiallyHidden")}
+            </p>
+          )}
           {!!p.best?.some((b) => catalog?.byId.has(b.exercise_id)) && (
             <Section title={t("friends.bestLifts")}>
               <ul className="space-y-2">
@@ -120,6 +137,21 @@ function FriendView() {
                         </span>
                       )}
                     </p>
+                    <div className="mt-2 flex items-center gap-1" role="group" aria-label={t("social.giveKudos")}>
+                      {KUDOS.map((e) => (
+                        <button
+                          key={e}
+                          type="button"
+                          aria-pressed={w.my_kudos === e}
+                          aria-label={`${t("social.giveKudos")} ${e}`}
+                          onClick={() => kudos.mutate({ workoutId: w.id, emoji: e })}
+                          className={`flex size-10 items-center justify-center rounded-full border text-lg ${w.my_kudos === e ? "border-primary bg-accent" : ""}`}
+                        >
+                          {e}
+                        </button>
+                      ))}
+                      {w.kudos > 0 && <span className="ml-2 text-xs text-muted-foreground">{t("social.kudosCount", { count: w.kudos })}</span>}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -128,9 +160,23 @@ function FriendView() {
         </>
       )}
 
-      <Button variant="ghost" className="w-full text-destructive" onClick={() => setConfirm(true)}>
-        <UserMinus aria-hidden /> {t("friends.remove")}
-      </Button>
+      <div className="grid grid-cols-2 gap-2">
+        <Button variant="ghost" className="text-destructive" onClick={() => setConfirm(true)}>
+          <UserMinus aria-hidden /> {t("friends.remove")}
+        </Button>
+        <Button variant="ghost" className="text-destructive" onClick={() => setConfirmBlock(true)}>
+          <Ban aria-hidden /> {t("friends.block")}
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={confirmBlock}
+        onOpenChange={setConfirmBlock}
+        title={t("friends.block")}
+        description={t("friends.blockConfirm", { name })}
+        confirmLabel={t("friends.block")}
+        destructive
+        onConfirm={() => block.mutate()}
+      />
       <ConfirmDialog
         open={confirm}
         onOpenChange={setConfirm}

@@ -318,3 +318,75 @@ describe("friends & progress privacy", () => {
     expect(await as(B, () => rows(`select * from public.list_friends()`))).toHaveLength(0);
   });
 });
+
+describe("social v2: notifications, kudos, leaderboard, challenges, blocking, granular privacy", () => {
+  const one = async (uid: string, sql: string) => (await as(uid, () => rows(sql)))[0];
+  const code = async (uid: string) => (await rows(`select friend_code from public.profiles where id = $1`, [uid]))[0].friend_code as string;
+  const WA = "11111111-1111-4111-8111-111111111111"; // A's completed workout
+
+  it("friend request + accept queue notifications for the other side", async () => {
+    await one(A, `select public.send_friend_request('${await code(B)}') as r`);
+    const req = await one(B, `select id from public.list_friends()`);
+    await as(B, () => db.exec(`select public.respond_friend_request('${req.id}', true)`));
+    const kinds = await rows(`select user_id, kind from public.notifications_outbox order by created_at`);
+    expect(kinds).toEqual(
+      expect.arrayContaining([
+        { user_id: B, kind: "friend_request" },
+        { user_id: A, kind: "friend_accepted" },
+      ]),
+    );
+    // Users can't read the queue directly.
+    expect(await as(A, () => rows(`select * from public.notifications_outbox`))).toHaveLength(0);
+  });
+
+  it("kudos only between friends who can see each other, and notifies the owner", async () => {
+    expect((await one(B, `select public.give_kudos('${WA}', '🔥') as ok`)).ok).toBe(true);
+    expect((await one(ADMIN, `select public.give_kudos('${WA}', '🔥') as ok`)).ok).toBe(false);
+    expect((await one(A, `select public.give_kudos('${WA}', '🔥') as ok`)).ok).toBe(false); // own workout
+    const k = await as(A, () => rows(`select * from public.kudos_for_workout('${WA}')`));
+    expect(k).toHaveLength(1);
+    expect(k[0].emoji).toBe("🔥");
+    const [n] = await rows(`select count(*)::int as n from public.notifications_outbox where user_id = $1 and kind = 'kudos'`, [A]);
+    expect(n.n).toBe(1);
+  });
+
+  it("granular privacy hides only the chosen parts", async () => {
+    await as(A, () => db.exec(`update public.profiles set share_lifts = false where id = '${A}'`));
+    const p = (await one(B, `select public.friend_progress('${A}') as p`)).p as { best: unknown[]; recent: unknown[] };
+    expect(p.best).toEqual([]);
+    expect(p.recent.length).toBe(1);
+    // PR announcements respect share_lifts.
+    expect((await one(A, `select public.announce_prs('${WA}', '[{"exercise_id":"${BENCH}","value":100}]'::jsonb) as n`)).n).toBe(0);
+    await as(A, () => db.exec(`update public.profiles set share_lifts = true where id = '${A}'`));
+    expect((await one(A, `select public.announce_prs('${WA}', '[{"exercise_id":"${BENCH}","value":100}]'::jsonb) as n`)).n).toBe(1);
+  });
+
+  it("weekly leaderboard includes me and visible friends only", async () => {
+    const lb = await as(A, () => rows(`select user_id, is_me from public.friends_leaderboard('sessions')`));
+    expect(lb.map((r) => r.user_id).sort()).toEqual([A, B].sort());
+    await as(B, () => db.exec(`update public.profiles set share_streak = false where id = '${B}'`));
+    const lb2 = await as(A, () => rows(`select user_id from public.friends_leaderboard('sessions')`));
+    expect(lb2.map((r) => r.user_id)).toEqual([A]);
+    await as(B, () => db.exec(`update public.profiles set share_streak = true where id = '${B}'`));
+  });
+
+  it("challenges: invite friends, join, see progress; strangers can't see it", async () => {
+    const { cid } = await one(A, `select public.create_challenge('12 sesi', 'sessions', 12, 30, array['${B}', '${ADMIN}']::uuid[]) as cid`);
+    const members = await as(A, () => rows(`select user_id, status from public.challenge_progress('${cid}')`));
+    expect(members.map((m) => m.user_id).sort()).toEqual([A, B].sort()); // ADMIN isn't A's friend
+    await as(B, () => db.exec(`select public.join_challenge('${cid}')`));
+    const b = (await as(B, () => rows(`select status from public.challenge_progress('${cid}') where user_id = '${B}'`)))[0];
+    expect(b.status).toBe("joined");
+    expect(await as(ADMIN, () => rows(`select * from public.challenge_progress('${cid}')`))).toHaveLength(0);
+    expect(await as(ADMIN, () => rows(`select * from public.challenges`))).toHaveLength(0);
+  });
+
+  it("blocking removes the friendship and silently prevents new requests", async () => {
+    await as(B, () => db.exec(`select public.block_user('${A}')`));
+    expect(await as(A, () => rows(`select * from public.list_friends()`))).toHaveLength(0);
+    expect((await one(A, `select public.send_friend_request('${await code(B)}') as r`)).r).toBe("not_found");
+    expect((await as(B, () => rows(`select user_id from public.list_blocked()`))).map((r) => r.user_id)).toEqual([A]);
+    await as(B, () => db.exec(`delete from public.blocks where blocked = '${A}'`));
+    expect((await one(A, `select public.send_friend_request('${await code(B)}') as r`)).r).toBe("sent");
+  });
+});

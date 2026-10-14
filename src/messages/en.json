@@ -708,12 +708,62 @@
     "recent": "Recent workouts",
     "noWorkouts": "No workouts yet.",
     "remove": "Remove friend",
-    "removeConfirm": "Remove {name} from your friends?"
+    "removeConfirm": "Remove {name} from your friends?",
+    "block": "Block",
+    "blockConfirm": "Block {name}? You'll be unfriended and they can't send requests again.",
+    "blocked": "User blocked"
   },
   "privacy": {
     "title": "Privacy",
     "shareProgress": "Show my progress to friends",
     "sharedHint": "Friends can see a summary of your training, and you can see theirs.",
-    "hiddenHint": "Your progress is hidden. You can't see friends' progress either, but you stay friends."
+    "hiddenHint": "Your progress is hidden. You can't see friends' progress either, but you stay friends.",
+    "share_streak": "Streak & training frequency",
+    "share_workouts": "Workout list & volume",
+    "share_lifts": "Best lifts & PRs",
+    "blockedUsers": "Blocked users ({count})",
+    "unblock": "Unblock"
+  },
+  "social": {
+    "tabs": "Friends menu",
+    "tab": {
+      "friends": "Friends",
+      "leaderboard": "Leaderboard",
+      "challenges": "Challenges"
+    },
+    "leaderboard": "Leaderboard",
+    "metric": {
+      "sessions": "Sessions",
+      "volume": "Volume"
+    },
+    "thisWeekNote": "This week (from Monday). Only friends who share this data.",
+    "leaderboardEmpty": "Add friends to start competing this week!",
+    "sessionsCount": "{count, plural, one {# session} other {# sessions}}",
+    "rank": "Rank {n}",
+    "you": "you",
+    "newChallenge": "New challenge",
+    "challengesEmpty": "No challenges yet. Invite friends, e.g. \"12 sessions in 30 days\".",
+    "pastChallenges": "Finished challenges ({count})",
+    "daysLeft": "{count} days left",
+    "deleteChallenge": "Delete challenge",
+    "invited": "Invited",
+    "completed": "Completed",
+    "join": "Join challenge",
+    "decline": "Decline",
+    "leave": "Leave challenge",
+    "joinNote": "By joining, your sessions/volume during the challenge are visible to other participants.",
+    "challengeCreated": "Challenge created & invites sent",
+    "challengeTitle": "Challenge name",
+    "challengeTitlePlaceholder": "e.g. Consistent October",
+    "metricLabel": "Measure",
+    "target": "Target",
+    "durationDays": "Duration (days)",
+    "inviteFriends": "Invite friends",
+    "noFriendsYet": "No friends yet. You can still create a solo challenge.",
+    "createChallenge": "Create & send invites",
+    "giveKudos": "Cheer",
+    "kudosCount": "{count} cheers",
+    "kudosFrom": "from {names}",
+    "partiallyHidden": "Your friend hides part of their progress."
   }
 }

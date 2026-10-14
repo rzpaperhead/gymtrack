@@ -85,6 +85,10 @@ export interface Profile {
   avatar_url?: string | null;
   /** Let accepted friends see my progress summary (reciprocal). */
   share_progress?: boolean;
+  /** Granular parts of what friends see (only when share_progress is on). */
+  share_streak?: boolean;
+  share_workouts?: boolean;
+  share_lifts?: boolean;
   /** Assigned by the server; shared to add friends. */
   friend_code?: string | null;
   created_at: string;

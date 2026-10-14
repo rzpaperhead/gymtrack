@@ -23,7 +23,10 @@ import { track } from "@/lib/analytics";
 import { durationSec } from "@/lib/calc/stats";
 import { alive, db } from "@/lib/db/local";
 import { formatClock, useActiveWorkout, useNow } from "@/lib/hooks";
-import { deleteWorkout, finishWorkout, hasValues, updateWorkout } from "@/lib/workout/actions";
+import { deleteWorkout, finishWorkout, hasValues, sessionSummary, updateWorkout } from "@/lib/workout/actions";
+import { announcePRs } from "@/lib/data/friends";
+import { isSyncEnabled } from "@/lib/db/session";
+import { syncNow } from "@/lib/db/sync-manager";
 import { stopRest } from "@/lib/workout/rest-timer";
 import { useWakeLock } from "@/lib/workout/wake-lock";
 import { ensurePushSubscription } from "@/lib/push";
@@ -76,6 +79,15 @@ export default function ActiveWorkoutPage() {
     await stopRest();
     await finishWorkout(workout.id, mode);
     track("workout_completed", { duration_min: Math.round(durationSec(workout) / 60) });
+    // Let friends know about new PRs once the session reached the server.
+    if (isSyncEnabled() && navigator.onLine) {
+      const id = workout.id;
+      void (async () => {
+        await syncNow();
+        const s = await sessionSummary(id);
+        if (s?.prs.length) await announcePRs(id, s.prs);
+      })();
+    }
   };
 
   const incomplete = openSets?.length ?? 0;

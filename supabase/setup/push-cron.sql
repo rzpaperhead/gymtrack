@@ -16,7 +16,8 @@ select cron.schedule(
     headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>', 'Content-Type', 'application/json'),
     body := '{}'::jsonb
   )
-  where exists (select 1 from public.scheduled_pushes where send_at <= now() + interval '3 seconds');
+  where exists (select 1 from public.scheduled_pushes where send_at <= now() + interval '3 seconds')
+     or exists (select 1 from public.notifications_outbox where sent_at is null);
   $$
 );
 

@@ -1,17 +1,19 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, ChevronRight, Copy, EyeOff, Share2, UserPlus, X } from "lucide-react";
+import { Ban, Check, ChevronRight, Copy, EyeOff, Share2, UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
-import { Card, EmptyState, Field, LinkButton, PageHeader, Section } from "@/components/common";
+import { Card, EmptyState, Field, LinkButton, PageHeader, Section, Segmented } from "@/components/common";
+import { Challenges } from "@/components/social/challenges";
+import { Leaderboard } from "@/components/social/leaderboard";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { listFriends, respondFriendRequest, sendFriendRequest, type FriendRow } from "@/lib/data/friends";
+import { blockUser, listFriends, respondFriendRequest, sendFriendRequest, type FriendRow } from "@/lib/data/friends";
 import { useOnline } from "@/lib/hooks";
 
 export default function FriendsPage() {
@@ -29,8 +31,37 @@ export default function FriendsPage() {
   return (
     <div className="space-y-6">
       <PageHeader back="/profile" title={t("title")} />
-      {!online ? <EmptyState>{t("needOnline")}</EmptyState> : <FriendsContent />}
+      {!online ? <EmptyState>{t("needOnline")}</EmptyState> : <SocialTabs />}
     </div>
+  );
+}
+
+type Tab = "friends" | "leaderboard" | "challenges";
+
+function SocialTabs() {
+  const t = useTranslations("social");
+  const [tab, setTab] = useState<Tab>("friends");
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("tab") as Tab | null;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- deep link from notifications
+    if (q === "leaderboard" || q === "challenges") setTab(q);
+  }, []);
+  return (
+    <>
+      <Segmented
+        label={t("tabs")}
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "friends", label: t("tab.friends") },
+          { value: "leaderboard", label: t("tab.leaderboard") },
+          { value: "challenges", label: t("tab.challenges") },
+        ]}
+      />
+      {tab === "friends" && <FriendsContent />}
+      {tab === "leaderboard" && <Leaderboard />}
+      {tab === "challenges" && <Challenges />}
+    </>
   );
 }
 
@@ -62,6 +93,13 @@ function FriendsContent() {
   const respond = useMutation({
     mutationFn: ({ id, accept }: { id: string; accept: boolean }) => respondFriendRequest(id, accept),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["friends"] }),
+  });
+  const block = useMutation({
+    mutationFn: (userId: string) => blockUser(userId),
+    onSuccess: () => {
+      toast.success(t("blocked"));
+      void qc.invalidateQueries({ queryKey: ["friends"] });
+    },
   });
 
   const myCode = profile?.friend_code ?? null;
@@ -139,6 +177,9 @@ function FriendsContent() {
               <li key={f.id} className="flex items-center gap-3 rounded-2xl border border-primary/50 bg-card p-3">
                 <Avatar url={f.avatar_url} name={f.display_name ?? "?"} className="size-11 text-lg" />
                 <span className="min-w-0 flex-1 truncate font-semibold">{f.display_name ?? t("noName")}</span>
+                <Button size="icon" variant="ghost" aria-label={t("block")} onClick={() => block.mutate(f.friend_id)}>
+                  <Ban />
+                </Button>
                 <Button size="icon" variant="secondary" aria-label={t("decline")} onClick={() => respond.mutate({ id: f.id, accept: false })}>
                   <X />
                 </Button>

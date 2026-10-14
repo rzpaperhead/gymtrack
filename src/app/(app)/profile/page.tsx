@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
 import { NewPasswordForm } from "@/components/auth/new-password-form";
 import { ReminderSettings } from "@/components/reminder-settings";
+import { BlockedUsers } from "@/components/social/blocked-users";
 import { Card, ConfirmDialog, Field, NativeSelect, PageHeader, Section, Segmented } from "@/components/common";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { useSetLocale } from "@/components/providers/i18n-provider";
@@ -227,6 +228,17 @@ export default function ProfilePage() {
               </span>
               <Switch checked={profile.share_progress !== false} onCheckedChange={(v) => set({ share_progress: v })} />
             </label>
+            {profile.share_progress !== false && (
+              <div className="space-y-1 border-t pt-2">
+                {(["share_streak", "share_workouts", "share_lifts"] as const).map((k) => (
+                  <label key={k} className="flex min-h-11 cursor-pointer items-center gap-3 pl-2">
+                    <span className="flex-1 text-sm">{t(`privacy.${k}`)}</span>
+                    <Switch checked={profile[k] !== false} onCheckedChange={(v) => set({ [k]: v })} />
+                  </label>
+                ))}
+              </div>
+            )}
+            <BlockedUsers />
           </Card>
         </Section>
       )}

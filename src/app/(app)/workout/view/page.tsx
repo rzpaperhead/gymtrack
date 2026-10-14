@@ -2,7 +2,10 @@
 
 import { useLiveQuery } from "dexie-react-hooks";
 import { Pencil, RotateCcw, Trash2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/components/providers/auth-provider";
+import { kudosForWorkout } from "@/lib/data/friends";
 import { useFormatter, useLocale, useTranslations } from "next-intl";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
@@ -75,6 +78,7 @@ function View() {
         <Stat label={t("summary.sets")} value={done.filter((s) => s.set_type !== "warmup").length} />
       </div>
       {w.notes && <p className="rounded-xl bg-muted p-3 text-sm">{w.notes}</p>}
+      <KudosReceived workoutId={id} />
 
       {editing ? (
         <>
@@ -130,6 +134,23 @@ function View() {
       />
       {dialog}
     </div>
+  );
+}
+
+/** Reactions friends left on this workout (online, accounts only). */
+function KudosReceived({ workoutId }: { workoutId: string }) {
+  const t = useTranslations("social");
+  const { mode, guest } = useAuth();
+  const q = useQuery({
+    queryKey: ["kudos", workoutId],
+    queryFn: () => kudosForWorkout(workoutId),
+    enabled: mode === "supabase" && !guest && typeof navigator !== "undefined" && navigator.onLine,
+  });
+  if (!q.data?.length) return null;
+  return (
+    <p className="rounded-xl border border-primary/40 bg-accent/30 p-3 text-sm">
+      {q.data.map((k) => k.emoji).join(" ")} {t("kudosFrom", { names: q.data.map((k) => k.from_name).join(", ") })}
+    </p>
   );
 }
 

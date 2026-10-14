@@ -708,12 +708,62 @@
     "recent": "Latihan terakhir",
     "noWorkouts": "Belum ada latihan.",
     "remove": "Hapus teman",
-    "removeConfirm": "Hapus {name} dari daftar teman?"
+    "removeConfirm": "Hapus {name} dari daftar teman?",
+    "block": "Blokir",
+    "blockConfirm": "Blokir {name}? Pertemanan dihapus dan dia tidak bisa mengirim permintaan lagi.",
+    "blocked": "Pengguna diblokir"
   },
   "privacy": {
     "title": "Privasi",
     "shareProgress": "Tampilkan progres ke teman",
     "sharedHint": "Teman bisa melihat ringkasan latihanmu, dan kamu bisa melihat milik mereka.",
-    "hiddenHint": "Progresmu tersembunyi. Kamu juga tidak bisa melihat progres teman, tapi tetap berteman."
+    "hiddenHint": "Progresmu tersembunyi. Kamu juga tidak bisa melihat progres teman, tapi tetap berteman.",
+    "share_streak": "Streak & frekuensi latihan",
+    "share_workouts": "Daftar latihan & volume",
+    "share_lifts": "Angkatan terbaik & PR",
+    "blockedUsers": "Pengguna diblokir ({count})",
+    "unblock": "Buka blokir"
+  },
+  "social": {
+    "tabs": "Menu teman",
+    "tab": {
+      "friends": "Teman",
+      "leaderboard": "Peringkat",
+      "challenges": "Tantangan"
+    },
+    "leaderboard": "Peringkat",
+    "metric": {
+      "sessions": "Sesi",
+      "volume": "Volume"
+    },
+    "thisWeekNote": "Minggu ini (mulai Senin). Hanya teman yang membagikan data ini.",
+    "leaderboardEmpty": "Tambahkan teman untuk mulai bersaing minggu ini!",
+    "sessionsCount": "{count} sesi",
+    "rank": "Peringkat {n}",
+    "you": "kamu",
+    "newChallenge": "Buat tantangan",
+    "challengesEmpty": "Belum ada tantangan. Ajak teman, misalnya \"12 sesi dalam 30 hari\".",
+    "pastChallenges": "Tantangan selesai ({count})",
+    "daysLeft": "sisa {count} hari",
+    "deleteChallenge": "Hapus tantangan",
+    "invited": "Diundang",
+    "completed": "Tercapai",
+    "join": "Ikut tantangan",
+    "decline": "Tolak",
+    "leave": "Keluar dari tantangan",
+    "joinNote": "Dengan ikut, jumlah sesi/volume-mu selama tantangan terlihat oleh peserta lain.",
+    "challengeCreated": "Tantangan dibuat & undangan terkirim",
+    "challengeTitle": "Nama tantangan",
+    "challengeTitlePlaceholder": "Contoh: Oktober Konsisten",
+    "metricLabel": "Ukuran",
+    "target": "Target",
+    "durationDays": "Durasi (hari)",
+    "inviteFriends": "Undang teman",
+    "noFriendsYet": "Belum ada teman. Kamu tetap bisa membuat tantangan pribadi.",
+    "createChallenge": "Buat & kirim undangan",
+    "giveKudos": "Beri semangat",
+    "kudosCount": "{count} semangat",
+    "kudosFrom": "dari {names}",
+    "partiallyHidden": "Sebagian progres disembunyikan oleh temanmu."
   }
 }
