@@ -19,3 +19,19 @@ select cron.schedule(
   where exists (select 1 from public.scheduled_pushes where send_at <= now() + interval '3 seconds');
   $$
 );
+
+-- Workout reminders: check once a minute.
+select cron.unschedule('gymtrack-reminders') where exists (select 1 from cron.job where jobname = 'gymtrack-reminders');
+
+select cron.schedule(
+  'gymtrack-reminders',
+  '* * * * *',
+  $$
+  select net.http_post(
+    url := 'https://gymtrack-seven-theta.vercel.app/api/push/reminders',
+    headers := jsonb_build_object('Authorization', 'Bearer <CRON_SECRET>', 'Content-Type', 'application/json'),
+    body := '{}'::jsonb
+  )
+  where exists (select 1 from public.workout_reminders where enabled);
+  $$
+);

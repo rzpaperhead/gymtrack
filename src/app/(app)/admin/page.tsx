@@ -14,6 +14,7 @@ import {
   createPromoCode,
   listConfirmations,
   listPromoCodes,
+  listRedemptions,
   proofUrl,
   reviewPayment,
   setPromoActive,
@@ -152,6 +153,8 @@ function Codes() {
   const [maxUses, setMaxUses] = useState("1");
   const [note, setNote] = useState("");
   const list = useQuery({ queryKey: ["admin-codes"], queryFn: listPromoCodes });
+  const redemptions = useQuery({ queryKey: ["admin-redemptions"], queryFn: listRedemptions });
+  const [openCode, setOpenCode] = useState<string | null>(null);
   const copy = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
@@ -164,6 +167,7 @@ function Codes() {
       void copy(code);
       setNote("");
       void qc.invalidateQueries({ queryKey: ["admin-codes"] });
+      void qc.invalidateQueries({ queryKey: ["admin-redemptions"] });
     },
     onError: () => toast.error(t("failed")),
   });
@@ -210,6 +214,22 @@ function Codes() {
         </Button>
       </Card>
 
+      {!!redemptions.data?.length && (
+        <Section title={t("history")}>
+          <ul className="divide-y rounded-2xl border bg-card text-sm">
+            {redemptions.data.slice(0, 50).map((r) => (
+              <li key={`${r.code}-${r.user_id}`} className="flex items-center gap-2 px-3 py-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold">{r.user_email ?? r.user_id}</span>
+                  <span className="num block text-xs tracking-wider text-muted-foreground">{r.code}</span>
+                </span>
+                <span className="shrink-0 text-xs text-muted-foreground">{f.dateTime(new Date(r.redeemed_at), { dateStyle: "medium", timeStyle: "short" })}</span>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      )}
+
       <Section title={t("codes")}>
         {!list.data?.length ? (
           <EmptyState>{t("noCodes")}</EmptyState>
@@ -228,9 +248,28 @@ function Codes() {
                   {f.dateTime(new Date(c.created_at), { dateStyle: "medium" })}
                   {c.note ? ` · ${c.note}` : ""}
                 </p>
-                <Button variant="ghost" size="sm" className="mt-1" onClick={() => toggle.mutate(c)}>
-                  {c.active ? t("deactivate") : t("activate")}
-                </Button>
+                <div className="mt-1 flex gap-1">
+                  <Button variant="ghost" size="sm" onClick={() => toggle.mutate(c)}>
+                    {c.active ? t("deactivate") : t("activate")}
+                  </Button>
+                  {c.used_count > 0 && (
+                    <Button variant="ghost" size="sm" aria-expanded={openCode === c.code} onClick={() => setOpenCode(openCode === c.code ? null : c.code)}>
+                      {t("whoUsed", { count: c.used_count })}
+                    </Button>
+                  )}
+                </div>
+                {openCode === c.code && (
+                  <ul className="mt-2 space-y-1 border-t pt-2 text-sm">
+                    {(redemptions.data ?? [])
+                      .filter((r) => r.code === c.code)
+                      .map((r) => (
+                        <li key={r.user_id} className="flex justify-between gap-2">
+                          <span className="truncate">{r.user_email ?? r.user_id}</span>
+                          <span className="shrink-0 text-muted-foreground">{f.dateTime(new Date(r.redeemed_at), { dateStyle: "medium", timeStyle: "short" })}</span>
+                        </li>
+                      ))}
+                  </ul>
+                )}
               </li>
             ))}
           </ul>

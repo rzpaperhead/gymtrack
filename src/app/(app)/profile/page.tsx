@@ -9,6 +9,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Avatar } from "@/components/avatar";
+import { ReminderSettings } from "@/components/reminder-settings";
 import { Card, ConfirmDialog, Field, NativeSelect, PageHeader, Section, Segmented } from "@/components/common";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { useSetLocale } from "@/components/providers/i18n-provider";
@@ -208,6 +209,8 @@ export default function ProfilePage() {
           )}
         </Card>
       </Section>
+
+      {mode === "supabase" && !guest && <ReminderSettings />}
 
       <nav aria-label={t("workout.title")} className="divide-y rounded-2xl border bg-card">
         {[

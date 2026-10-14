@@ -100,6 +100,25 @@ export async function proofUrl(path: string): Promise<string | null> {
 export async function reviewPayment(id: string, approve: boolean, days: number | null) {
   const { error } = await (await getSupabase()).rpc("review_payment", { p_id: id, p_approve: approve, p_days: days });
   if (error) throw error;
+  // Tell the user (push + email); best-effort.
+  void fetch("/api/payments/reviewed", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeader()) },
+    body: JSON.stringify({ id }),
+  }).catch(() => {});
+}
+
+export interface Redemption {
+  code: string;
+  user_id: string;
+  user_email: string | null;
+  redeemed_at: string;
+}
+
+export async function listRedemptions(): Promise<Redemption[]> {
+  const { data, error } = await (await getSupabase()).from("promo_redemptions").select("*").order("redeemed_at", { ascending: false }).limit(500);
+  if (error) throw error;
+  return data as Redemption[];
 }
 
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I

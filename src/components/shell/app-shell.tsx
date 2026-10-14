@@ -4,10 +4,14 @@ import { Dumbbell, House, LineChart, Scale, User } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { useLiveQuery } from "dexie-react-hooks";
 import { useEffect, type ReactNode } from "react";
+import { toast } from "sonner";
 import { useAuth, useProfile } from "@/components/providers/auth-provider";
 import { ActiveWorkoutBar } from "@/components/shell/active-workout-bar";
 import { RestTimerBar } from "@/components/shell/rest-timer-bar";
+import { db } from "@/lib/db/local";
+import { tierOf } from "@/lib/entitlements";
 import { useOnline } from "@/lib/hooks";
 import { cn } from "@/lib/utils";
 
@@ -32,8 +36,26 @@ function useGate(): boolean {
   return status === "signed_in" && ready && !!profile?.onboarded_at;
 }
 
+/** Toast once when Premium arrives from the server (payment approved / code). */
+function usePremiumArrival() {
+  const t = useTranslations("premium");
+  const { userId } = useAuth();
+  // Wrapped so "still loading" (undefined) differs from "no subscription row".
+  const loaded = useLiveQuery(async () => (userId ? { sub: await db.subscriptions.get(userId) } : undefined), [userId]);
+  const tier = loaded ? tierOf(loaded.sub) : null;
+  useEffect(() => {
+    if (!tier || !userId) return;
+    const key = `gt-tier:${userId}`;
+    try {
+      if (localStorage.getItem(key) === "free" && tier === "premium") toast.success(t("nowPremium"));
+      localStorage.setItem(key, tier);
+    } catch {}
+  }, [tier, userId, t]);
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const ok = useGate();
+  usePremiumArrival();
   const pathname = usePathname();
   const t = useTranslations();
   const online = useOnline();

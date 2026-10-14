@@ -534,7 +534,8 @@
     "redeem_already": "You've already used this code.",
     "oneTime": "one-time payment, Premium forever",
     "uniqueNote": "The last Rp{code} is a unique code so your transfer is easy to identify.",
-    "signUpFirst": "Create an account first to get Premium. Your workouts come with you."
+    "signUpFirst": "Create an account first to get Premium. Your workouts come with you.",
+    "nowPremium": "Premium is active! Every feature is unlocked."
   },
   "legal": {
     "privacyTitle": "Privacy Policy",
@@ -601,7 +602,9 @@
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected"
-    }
+    },
+    "history": "Code redemption history",
+    "whoUsed": "Used by ({count})"
   },
   "coach": {
     "title": "PT Assistant",
@@ -634,5 +637,17 @@
       "stalled": "{exercise} hasn't improved in the last {sessions} sessions. Try a 10% deload or a new rep range.",
       "progressing": "{exercise} is up +{gainKg} kg estimated 1RM. Keep going!"
     }
+  },
+  "reminder": {
+    "title": "Workout reminder",
+    "hint": "Get a notification at your chosen time, with that day's program workout.",
+    "time": "Time",
+    "days": "Days",
+    "enable": "Turn on reminder",
+    "update": "Save changes",
+    "disable": "Turn off",
+    "saved": "Reminder on at {time}",
+    "off": "Reminder turned off",
+    "needPermission": "Allow notifications in your browser/phone so reminders can be sent."
   }
 }

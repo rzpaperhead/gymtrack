@@ -39,7 +39,7 @@ const serwist = new Serwist({
 self.addEventListener("push", (event) => {
   const data = (() => {
     try {
-      return event.data?.json() as { title: string; body: string; tag?: string };
+      return event.data?.json() as { title: string; body: string; tag?: string; url?: string };
     } catch {
       return null;
     }
@@ -47,13 +47,15 @@ self.addEventListener("push", (event) => {
   if (!data) return;
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      if (clients.some((c) => (c as WindowClient).visibilityState === "visible")) return;
+      const visible = clients.some((c) => (c as WindowClient).visibilityState === "visible");
+      if (visible && (data.tag ?? "rest-timer") === "rest-timer") return;
       return self.registration.showNotification(data.title, {
         body: data.body,
         tag: data.tag ?? "rest-timer",
         icon: "/icons/192",
         badge: "/icons/192",
         requireInteraction: false,
+        data: { url: data.url ?? "/home" },
       });
     }),
   );
@@ -64,8 +66,10 @@ self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
-      const client = clients.find((c) => "focus" in c);
-      return client ? client.focus() : self.clients.openWindow("/workout/active");
+      const url = (event.notification.data as { url?: string } | undefined)?.url ?? "/workout/active";
+      const client = clients.find((c) => "focus" in c) as WindowClient | undefined;
+      if (client) return client.navigate(url).then((c) => c?.focus());
+      return self.clients.openWindow(url);
     }),
   );
 });

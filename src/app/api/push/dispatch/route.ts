@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import webpush from "web-push";
+import { cronAuthorized, pushConfigured, sendPush, type PushMessage } from "@/lib/push-server";
 import { adminClient } from "@/lib/supabase/server";
 
 /**
@@ -7,14 +7,8 @@ import { adminClient } from "@/lib/supabase/server";
  * cron job (see supabase/setup/push-cron.sql), authenticated with CRON_SECRET.
  */
 export async function POST(req: Request) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  }
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv) return NextResponse.json({ error: "push_not_configured" }, { status: 503 });
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT ?? "mailto:admin@example.com", pub, priv);
+  if (!cronAuthorized(req)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!pushConfigured()) return NextResponse.json({ error: "push_not_configured" }, { status: 503 });
 
   const db = adminClient();
   const { data: due, error } = await db
@@ -27,26 +21,8 @@ export async function POST(req: Request) {
 
   // Claim them first so an overlapping run can't send twice.
   await db.from("scheduled_pushes").delete().in("user_id", due.map((d) => d.user_id));
-  const { data: subs } = await db.from("push_subscriptions").select("*").in("user_id", due.map((d) => d.user_id));
-
-  let sent = 0;
-  const dead: string[] = [];
-  await Promise.all(
-    (subs ?? []).map(async (s) => {
-      const p = due.find((d) => d.user_id === s.user_id)!;
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          JSON.stringify({ title: p.title, body: p.body, tag: "rest-timer", url: "/workout/active" }),
-          { TTL: 120, urgency: "high" },
-        );
-        sent++;
-      } catch (e) {
-        const code = (e as { statusCode?: number }).statusCode;
-        if (code === 404 || code === 410) dead.push(s.endpoint);
-      }
-    }),
+  const messages = new Map<string, PushMessage>(
+    due.map((d) => [d.user_id, { title: d.title, body: d.body, tag: "rest-timer", url: "/workout/active" }]),
   );
-  if (dead.length) await db.from("push_subscriptions").delete().in("endpoint", dead);
-  return NextResponse.json({ sent, removed: dead.length });
+  return NextResponse.json({ sent: await sendPush(db, messages) });
 }

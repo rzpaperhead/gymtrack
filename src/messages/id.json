@@ -534,7 +534,8 @@
     "redeem_already": "Kamu sudah pernah memakai kode ini.",
     "oneTime": "sekali bayar, Premium selamanya",
     "uniqueNote": "Rp{code} di akhir nominal adalah kode unik agar transfermu mudah dikenali.",
-    "signUpFirst": "Buat akun dulu untuk berlangganan Premium. Data latihanmu tetap ikut."
+    "signUpFirst": "Buat akun dulu untuk berlangganan Premium. Data latihanmu tetap ikut.",
+    "nowPremium": "Premium aktif! Semua fitur sudah terbuka."
   },
   "legal": {
     "privacyTitle": "Kebijakan Privasi",
@@ -601,7 +602,9 @@
       "pending": "Menunggu",
       "approved": "Diterima",
       "rejected": "Ditolak"
-    }
+    },
+    "history": "Riwayat pemakaian kode",
+    "whoUsed": "Dipakai oleh ({count})"
   },
   "coach": {
     "title": "Asisten PT",
@@ -634,5 +637,17 @@
       "stalled": "{exercise} belum naik dalam {sessions} sesi terakhir. Coba deload 10% atau ubah rentang reps.",
       "progressing": "{exercise} naik +{gainKg} kg estimasi 1RM. Terus lanjutkan!"
     }
+  },
+  "reminder": {
+    "title": "Pengingat latihan",
+    "hint": "Kirim notifikasi di jam pilihanmu, lengkap dengan jadwal program hari itu.",
+    "time": "Jam",
+    "days": "Hari",
+    "enable": "Aktifkan pengingat",
+    "update": "Simpan perubahan",
+    "disable": "Matikan",
+    "saved": "Pengingat aktif jam {time}",
+    "off": "Pengingat dimatikan",
+    "needPermission": "Izinkan notifikasi di browser/HP agar pengingat bisa dikirim."
   }
 }
