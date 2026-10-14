@@ -266,3 +266,55 @@ describe("admin, promo codes and manual payments", () => {
     expect(st.status).toBe("approved");
   });
 });
+
+describe("friends & progress privacy", () => {
+  const one = async (uid: string, sql: string) => (await as(uid, () => rows(sql)))[0];
+  const codeOf = async (uid: string) => (await rows(`select friend_code from public.profiles where id = $1`, [uid]))[0].friend_code as string;
+
+  it("every profile gets a friend code that clients can't change", async () => {
+    const code = await codeOf(A);
+    expect(code).toMatch(/^GT-[A-Z0-9]{6}$/);
+    await as(A, () => db.exec(`update public.profiles set friend_code = 'GT-HACKED' where id = '${A}'`));
+    expect(await codeOf(A)).toBe(code);
+  });
+
+  it("request → accept flow, and strangers see nothing", async () => {
+    expect((await one(A, `select public.send_friend_request('${await codeOf(B)}') as r`)).r).toBe("sent");
+    expect((await one(A, `select public.send_friend_request('${await codeOf(B)}') as r`)).r).toBe("already_sent");
+    expect((await one(A, `select public.send_friend_request('${await codeOf(A)}') as r`)).r).toBe("self");
+    expect((await one(A, `select public.send_friend_request('GT-NOPE00') as r`)).r).toBe("not_found");
+    // Not friends yet → no progress.
+    expect((await one(A, `select public.friend_progress('${B}') as p`)).p).toBeNull();
+    const req = await one(B, `select id, incoming from public.list_friends()`);
+    expect(req.incoming).toBe(true);
+    // Only the addressee can accept.
+    await as(A, () => db.exec(`select public.respond_friend_request('${req.id}', true)`));
+    expect((await one(B, `select status from public.list_friends()`)).status).toBe("pending");
+    await as(B, () => db.exec(`select public.respond_friend_request('${req.id}', true)`));
+    expect((await one(A, `select status, can_view from public.list_friends()`))).toMatchObject({ status: "accepted", can_view: true });
+    // The admin (a stranger to both) can't see their progress.
+    expect((await one(ADMIN, `select public.friend_progress('${A}') as p`)).p).toBeNull();
+  });
+
+  it("friends see a progress summary, never raw rows", async () => {
+    const p = (await one(B, `select public.friend_progress('${A}') as p`)).p as { hidden: boolean; total_workouts: number; recent: unknown[] };
+    expect(p.hidden).toBe(false);
+    expect(p.total_workouts).toBe(1);
+    expect(await as(B, () => rows(`select id from public.workouts where user_id = '${A}'`))).toHaveLength(0);
+  });
+
+  it("hiding progress is reciprocal", async () => {
+    await as(A, () => db.exec(`update public.profiles set share_progress = false where id = '${A}'`));
+    expect(((await one(B, `select public.friend_progress('${A}') as p`)).p as { hidden: boolean }).hidden).toBe(true);
+    // A hides → A can't see B either, but they're still friends.
+    expect(((await one(A, `select public.friend_progress('${B}') as p`)).p as { hidden: boolean }).hidden).toBe(true);
+    expect((await one(A, `select status, can_view from public.list_friends()`))).toMatchObject({ status: "accepted", can_view: false });
+    await as(A, () => db.exec(`update public.profiles set share_progress = true where id = '${A}'`));
+  });
+
+  it("either side can unfriend", async () => {
+    const f = await one(A, `select id from public.list_friends()`);
+    await as(A, () => db.exec(`delete from public.friendships where id = '${f.id}'`));
+    expect(await as(B, () => rows(`select * from public.list_friends()`))).toHaveLength(0);
+  });
+});

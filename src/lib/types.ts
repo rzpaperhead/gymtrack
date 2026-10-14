@@ -83,6 +83,10 @@ export interface Profile {
   onboarded_at: string | null;
   /** Public URL (Storage) or a small data URL in demo mode. */
   avatar_url?: string | null;
+  /** Let accepted friends see my progress summary (reciprocal). */
+  share_progress?: boolean;
+  /** Assigned by the server; shared to add friends. */
+  friend_code?: string | null;
   created_at: string;
   updated_at: string;
 }

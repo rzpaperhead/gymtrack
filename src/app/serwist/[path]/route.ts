@@ -27,6 +27,8 @@ const APP_ROUTES = [
   "/premium",
   "/admin",
   "/auth/reset",
+  "/friends",
+  "/friends/view",
 ];
 
 export const { dynamic, dynamicParams, revalidate, generateStaticParams, GET } = createSerwistRoute({

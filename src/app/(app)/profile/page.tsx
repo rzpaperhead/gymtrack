@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useLiveQuery } from "dexie-react-hooks";
-import { Bell, Camera, ChevronRight, KeyRound, ShieldCheck, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
+import { Bell, Camera, ChevronRight, KeyRound, ShieldCheck, Users, ClipboardList, Crown, Download, Dumbbell, LayoutList, LogOut, RefreshCw, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
@@ -17,6 +17,7 @@ import { useSetLocale } from "@/components/providers/i18n-provider";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { LOCALE_LABELS } from "@/i18n/messages";
 import { removeAvatar, setAvatar } from "@/lib/data/avatar";
 import { exportWorkoutsCsv } from "@/lib/data/export";
@@ -214,8 +215,25 @@ export default function ProfilePage() {
 
       {mode === "supabase" && !guest && <ReminderSettings />}
 
+      {mode === "supabase" && !guest && (
+        <Section title={<span id="privacy">{t("privacy.title")}</span>}>
+          <Card className="space-y-2">
+            <label className="flex min-h-11 cursor-pointer items-center gap-3">
+              <span className="flex-1">
+                <span className="block font-semibold">{t("privacy.shareProgress")}</span>
+                <span className="block text-sm text-muted-foreground">
+                  {profile.share_progress === false ? t("privacy.hiddenHint") : t("privacy.sharedHint")}
+                </span>
+              </span>
+              <Switch checked={profile.share_progress !== false} onCheckedChange={(v) => set({ share_progress: v })} />
+            </label>
+          </Card>
+        </Section>
+      )}
+
       <nav aria-label={t("workout.title")} className="divide-y rounded-2xl border bg-card">
         {[
+          { href: "/friends", label: t("friends.title"), icon: Users },
           { href: "/templates", label: t("profile.manageTemplates"), icon: ClipboardList },
           { href: "/programs", label: t("profile.managePrograms"), icon: LayoutList },
           { href: "/exercises", label: t("profile.manageExercises"), icon: Dumbbell },
