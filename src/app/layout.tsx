@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: { default: "GymTrack — Catat latihan gym, offline", template: "%s · GymTrack" },
   description:
-    "Pencatat latihan gym yang tetap jalan walau sinyal jelek. Satu tap per set, rest timer otomatis, estimasi 1RM, dan rekor pribadi.",
+    "Pencatat latihan gym yang tetap jalan tanpa sinyal. Satu tap per set, rest timer otomatis, estimasi 1RM, dan rekor pribadi.",
   applicationName: "GymTrack",
   appleWebApp: { capable: true, title: "GymTrack", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },

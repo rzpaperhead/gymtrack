@@ -6,10 +6,10 @@
 
 ## 1. Ringkasan singkat
 
-**GymTrack** adalah aplikasi pencatat latihan gym berbahasa Indonesia. Aplikasi ini **tetap jalan walau sinyal jelek atau tanpa internet**, mencatat satu set cukup dengan **satu tap**, dan dilengkapi **asisten seperti personal trainer**, **peta pemulihan otot**, serta **fitur sosial** (teman, peringkat, tantangan, chat).
+**GymTrack** adalah aplikasi pencatat latihan gym berbahasa Indonesia. Aplikasi ini **tetap jalan tanpa sinyal internet**, mencatat satu set cukup dengan **satu tap**, dan dilengkapi **asisten seperti personal trainer**, **peta pemulihan otot**, serta **fitur sosial** (teman, peringkat, tantangan, chat).
 
 - **Tagline resmi:** "Catat latihan secepat mengangkat beban."
-- **Subjudul:** "Pencatat latihan gym yang tetap jalan walau sinyal jelek. Satu tap per set, progres yang jelas, dan PR yang terdeteksi otomatis."
+- **Subjudul:** "Pencatat latihan gym yang tetap jalan tanpa sinyal. Satu tap per set, progres yang jelas, dan PR yang terdeteksi otomatis."
 - **Link:** https://gymtrack-seven-theta.vercel.app
 - **Bahasa:** Indonesia (default) dan Inggris
 - **Platform:** aplikasi web yang bisa **dipasang di layar utama HP** (PWA), baik Android maupun iPhone. **Tidak ada di Play Store/App Store**. Pasangnya langsung dari browser tanpa download besar, dan tetap tampil layar penuh seperti aplikasi biasa.
@@ -165,7 +165,7 @@
 
 ## 6. Keunggulan utama (untuk hook promosi)
 
-1. **Jalan tanpa sinyal.** Cocok untuk gym di basement.
+1. **Tetap jalan tanpa sinyal.** Cocok untuk gym di basement.
 2. **Satu tap per set.** Angka minggu lalu sudah terisi.
 3. **Seperti punya PT pribadi:** saran naik beban, deteksi otot yang terlupakan, pengingat istirahat.
 4. **Peta pemulihan otot:** tahu otot mana yang siap dilatih hari ini.
